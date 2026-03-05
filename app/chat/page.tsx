@@ -5,9 +5,10 @@ import {
   MessageContent,
   MessageResponse,
 } from '@/components/ai-elements/message';
+import { Shimmer } from '@/components/ai-elements/shimmer';
 import ChatInput from '@/components/Input';
 import { useChatStore } from '@/store/chat';
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { useStickToBottom } from 'use-stick-to-bottom';
 
 const emptyStateMessages = [
@@ -27,14 +28,13 @@ const greeting =
 
 export default function ChatPage() {
   const { messages, addMessage, appendChunk, updateMessage } = useChatStore();
-  const idCounter = useRef(0);
 
   const { scrollRef, contentRef } = useStickToBottom({ initial: 'smooth' });
 
   const handleSubmit = useCallback(
     async (text: string, model: string): Promise<void> => {
-      const userId = String(idCounter.current++);
-      const assistantId = String(idCounter.current++);
+      const userId = crypto.randomUUID();
+      const assistantId = crypto.randomUUID();
 
       addMessage({ id: userId, role: 'user', text });
       addMessage({ id: assistantId, role: 'assistant', text: '' });
@@ -64,6 +64,9 @@ export default function ChatPage() {
 
   return (
     <main className="flex h-screen flex-col">
+      <div className="logo fixed top-2 left-4 font-satisfy text-xl text-primary">
+        Breeze
+      </div>
       <div className="flex-1 overflow-y-auto" ref={scrollRef}>
         <div
           className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6"
@@ -86,7 +89,11 @@ export default function ChatPage() {
             <Message from={msg.role} key={msg.id}>
               <MessageContent>
                 {msg.role === 'assistant' ? (
-                  <MessageResponse>{msg.text}</MessageResponse>
+                  msg.text === '' ? (
+                    <Shimmer>Thinking…</Shimmer>
+                  ) : (
+                    <MessageResponse>{msg.text}</MessageResponse>
+                  )
                 ) : (
                   msg.text
                 )}
