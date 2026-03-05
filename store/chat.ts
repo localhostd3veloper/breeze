@@ -13,11 +13,16 @@ interface ChatStore {
   appendChunk: (id: string, chunk: string) => void;
   updateMessage: (id: string, text: string) => void;
   clearMessages: () => void;
+  isAuthenticated: boolean;
+  setAuthenticated: (authenticated: boolean) => void;
 }
 
 export const useChatStore = create<ChatStore>()(
   persist(
     (set) => ({
+      isAuthenticated: false,
+      setAuthenticated: (authenticated) =>
+        set({ isAuthenticated: authenticated }),
       messages: [],
       addMessage: (msg) =>
         set((state) => ({ messages: [...state.messages, msg] })),

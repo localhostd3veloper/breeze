@@ -7,8 +7,23 @@ import {
 } from '@/components/ai-elements/message';
 import { Shimmer } from '@/components/ai-elements/shimmer';
 import ChatInput from '@/components/Input';
+import { ToggleTheme } from '@/components/theme-switch';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useChatStore } from '@/store/chat';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useStickToBottom } from 'use-stick-to-bottom';
 
 const emptyStateMessages = [
@@ -27,7 +42,34 @@ const greeting =
   emptyStateMessages[Math.floor(Math.random() * emptyStateMessages.length)];
 
 export default function ChatPage() {
-  const { messages, addMessage, appendChunk, updateMessage } = useChatStore();
+  const {
+    messages,
+    addMessage,
+    appendChunk,
+    updateMessage,
+    isAuthenticated,
+    setAuthenticated,
+  } = useChatStore();
+
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
+  const handleAuth = useCallback(async () => {
+    setAuthLoading(true);
+    setAuthError('');
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    setAuthLoading(false);
+    if (res.ok) {
+      setAuthenticated(true);
+    } else {
+      setAuthError('Invalid password.');
+    }
+  }, [password, setAuthenticated]);
 
   const { scrollRef, contentRef } = useStickToBottom({ initial: 'smooth' });
 
@@ -64,8 +106,42 @@ export default function ChatPage() {
 
   return (
     <main className="flex h-screen flex-col">
-      <div className="logo fixed top-2 left-4 font-satisfy text-xl text-primary">
-        Breeze
+      <Dialog open={!isAuthenticated}>
+        <DialogContent className="sm:max-w-sm" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Enter password</DialogTitle>
+            <DialogDescription>
+              This platform is password protected.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <Input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !authLoading && handleAuth()}
+              autoFocus
+            />
+            {authError && (
+              <p className="text-sm text-destructive">{authError}</p>
+            )}
+            <Button onClick={handleAuth} disabled={authLoading}>
+              {authLoading ? 'Checking…' : 'Unlock'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <div className="logo fixed top-2 left-4 font-satisfy text-xl text-primary underline">
+        <Tooltip>
+          <TooltipTrigger>Breeze.</TooltipTrigger>
+          <TooltipContent align="start">
+            Made by @localhostd3veloper
+          </TooltipContent>
+        </Tooltip>
+      </div>
+      <div className="fixed top-2 right-4">
+        <ToggleTheme />
       </div>
       <div className="flex-1 overflow-y-auto" ref={scrollRef}>
         <div
@@ -103,7 +179,7 @@ export default function ChatPage() {
         </div>
       </div>
       <div className="mx-auto w-full max-w-3xl px-4 pb-4">
-        <ChatInput onSubmit={handleSubmit} />
+        <ChatInput onSubmit={handleSubmit} isAuthenticated={isAuthenticated} />
       </div>
     </main>
   );

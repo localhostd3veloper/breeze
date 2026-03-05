@@ -84,7 +84,6 @@ const models = [
   },
 ];
 
-
 interface AttachmentItemProps {
   attachment: {
     id: string;
@@ -166,9 +165,10 @@ const PromptInputAttachmentsDisplay = () => {
 
 interface ChatInputProps {
   onSubmit?: (text: string, model: string) => Promise<void>;
+  isAuthenticated: boolean;
 }
 
-const ChatInput = ({ onSubmit }: ChatInputProps) => {
+const ChatInput = ({ onSubmit, isAuthenticated }: ChatInputProps) => {
   const [model, setModel] = useState<string>(models[0].id);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const [status, setStatus] = useState<
@@ -202,7 +202,7 @@ const ChatInput = ({ onSubmit }: ChatInputProps) => {
         <PromptInput globalDrop multiple onSubmit={handleSubmit}>
           <PromptInputAttachmentsDisplay />
           <PromptInputBody>
-            <PromptInputTextarea />
+            <PromptInputTextarea disabled={!isAuthenticated} />
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
