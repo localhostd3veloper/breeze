@@ -78,13 +78,15 @@ export default function ChatPage() {
       const userId = crypto.randomUUID();
       const assistantId = crypto.randomUUID();
 
+      const history = messages.map((m) => ({ role: m.role, content: m.text }));
+
       addMessage({ id: userId, role: 'user', text });
       addMessage({ id: assistantId, role: 'assistant', text: '' });
 
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, model }),
+        body: JSON.stringify({ message: text, model, history }),
       });
 
       if (!res.ok || !res.body) {
@@ -101,7 +103,7 @@ export default function ChatPage() {
         appendChunk(assistantId, decoder.decode(value, { stream: true }));
       }
     },
-    [addMessage, appendChunk, updateMessage],
+    [messages, addMessage, appendChunk, updateMessage],
   );
 
   return (

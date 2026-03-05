@@ -1,5 +1,5 @@
 export async function POST(req: Request) {
-  const { message, model } = await req.json();
+  const { message, model, history } = await req.json();
 
   const upstream = await fetch(process.env.OLLAMA_API_URL!, {
     method: 'POST',
@@ -7,7 +7,7 @@ export async function POST(req: Request) {
       'Content-Type': 'application/json',
       'X-API-Key': process.env.OLLAMA_API_KEY!,
     },
-    body: JSON.stringify({ message, model }),
+    body: JSON.stringify({ message, model, history }),
   });
 
   if (!upstream.ok) {
