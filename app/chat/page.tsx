@@ -2,6 +2,9 @@
 
 import {
   Conversation,
+  ConversationContent,
+  ConversationDownload,
+  ConversationEmptyState,
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation';
 import {
@@ -29,9 +32,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useChatStore } from '@/store/chat';
-import { Copy, DownloadCloud, File, Pencil, Share } from 'lucide-react';
+import { Copy, Pencil } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { useStickToBottom } from 'use-stick-to-bottom';
 
 const emptyStateMessages = [
   'How can I help?',
@@ -77,8 +79,6 @@ export default function ChatPage() {
       setAuthError('Invalid password.');
     }
   }, [password, setAuthenticated]);
-
-  const { scrollRef, contentRef } = useStickToBottom({ initial: 'smooth' });
 
   const handleSubmit = useCallback(
     async (text: string, model: string): Promise<void> => {
@@ -151,95 +151,74 @@ export default function ChatPage() {
           </TooltipContent>
         </Tooltip>
       </div>
-      <div className="fixed top-2 right-4">
+      <div className="fixed top-2 right-4 flex items-center gap-2 z-10">
+        <ConversationDownload
+          className="static rounded-md"
+          messages={messages.map((m) => ({ role: m.role, content: m.text }))}
+        />
         <ToggleTheme />
       </div>
-      <div className="flex-1 overflow-y-auto" ref={scrollRef}>
-        <Conversation
-          className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-4 py-6"
-          // ref={contentRef}
-        >
-          {messages.length === 0 && (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 py-32 text-center text-muted-foreground select-none">
-              <p
-                className="text-2xl font-medium text-foreground"
-                suppressHydrationWarning
-              >
-                {greeting}
-              </p>
-              <p className="text-sm">
-                Ask me anything — code, ideas, or whatever&apos;s on your mind.
-              </p>
-            </div>
-          )}
-          {messages.map((msg) => (
-            <>
-              <Message from={msg.role} key={msg.id}>
-                <MessageContent>
-                  {msg.role === 'assistant' ? (
-                    msg.text === '' ? (
-                      <Shimmer>Thinking…</Shimmer>
+      <Conversation className="flex-1 mt-12 md:mt-0">
+        <ConversationContent className="mx-auto w-full max-w-3xl gap-2 px-4 py-6">
+          {messages.length === 0 ? (
+            <ConversationEmptyState
+              title={greeting}
+              description="Ask me anything — code, ideas, or whatever's on your mind."
+              suppressHydrationWarning
+            />
+          ) : (
+            messages.map((msg) => (
+              <>
+                <Message from={msg.role} key={msg.id}>
+                  <MessageContent>
+                    {msg.role === 'assistant' ? (
+                      msg.text === '' ? (
+                        <Shimmer>Thinking…</Shimmer>
+                      ) : (
+                        <MessageResponse>{msg.text}</MessageResponse>
+                      )
                     ) : (
-                      <MessageResponse>{msg.text}</MessageResponse>
-                    )
-                  ) : (
-                    msg.text
-                  )}
-                </MessageContent>
-              </Message>
+                      msg.text
+                    )}
+                  </MessageContent>
+                </Message>
 
-              {msg.role === 'assistant' && msg.text !== '' && (
-                <MessageActions>
-                  <MessageAction
-                    tooltip="Copy"
-                    onClick={() => navigator.clipboard.writeText(msg.text)}
-                  >
-                    <Copy />
-                  </MessageAction>
-
-                  <MessageAction
-                    tooltip="Download"
-                    onClick={() => {
-                      const blob = new Blob([msg.text], {
-                        type: 'text/plain',
-                      });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = 'response.txt';
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                  >
-                    <DownloadCloud />
-                  </MessageAction>
-                </MessageActions>
-              )}
-              {msg.role === 'user' && (
-                <MessageActions className="justify-end">
-                  <MessageAction
-                    tooltip="Copy"
-                    onClick={() => navigator.clipboard.writeText(msg.text)}
-                  >
-                    <Copy />
-                  </MessageAction>
-                  {/* Edit */}
-                  <MessageAction
-                    tooltip="Edit"
-                    disabled
-                    onClick={() => {
-                      //TODO: implement edit functionality
-                    }}
-                  >
-                    <Pencil />
-                  </MessageAction>
-                </MessageActions>
-              )}
-            </>
-          ))}
-          <ConversationScrollButton />
-        </Conversation>
-      </div>
+                {msg.role === 'assistant' && msg.text !== '' && (
+                  <MessageActions>
+                    <MessageAction
+                      tooltip="Copy"
+                      onClick={() => navigator.clipboard.writeText(msg.text)}
+                    >
+                      <Copy />
+                    </MessageAction>
+                  </MessageActions>
+                )}
+                {msg.role === 'user' && (
+                  <MessageActions className="justify-end">
+                    <MessageAction
+                      tooltip="Copy"
+                      onClick={() => navigator.clipboard.writeText(msg.text)}
+                    >
+                      <Copy />
+                    </MessageAction>
+                    {/* Edit */}
+                    <MessageAction
+                      tooltip="Edit"
+                      disabled
+                      onClick={() => {
+                        //TODO: implement edit functionality
+                      }}
+                    >
+                      <Pencil />
+                    </MessageAction>
+                  </MessageActions>
+                )}
+              </>
+            ))
+          )}
+        </ConversationContent>
+        <ConversationScrollButton />
+      </Conversation>
       <div className="mx-auto w-full max-w-3xl px-4 pb-4">
         <ChatInput onSubmit={handleSubmit} isAuthenticated={isAuthenticated} />
       </div>
