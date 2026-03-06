@@ -32,8 +32,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useChatStore } from '@/store/chat';
-import { Copy, Pencil } from 'lucide-react';
+import { Copy, CopyCheck, Pencil, TreePalm } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 
 const emptyStateMessages = [
   'How can I help?',
@@ -143,9 +144,12 @@ export default function ChatPage() {
           </div>
         </DialogContent>
       </Dialog>
-      <div className="logo fixed top-2 left-4 font-satisfy text-xl text-primary underline">
+      <div className="logo fixed top-2 left-4 font-satisfy text-xl text-primary z-10">
         <Tooltip>
-          <TooltipTrigger>Breeze.</TooltipTrigger>
+          <TooltipTrigger className="flex gap-1">
+            <TreePalm className="h-6 w-6 text-primary" />
+            Breeze.
+          </TooltipTrigger>
           <TooltipContent align="start">
             Made by @localhostd3veloper
           </TooltipContent>
@@ -187,7 +191,12 @@ export default function ChatPage() {
                   <MessageActions>
                     <MessageAction
                       tooltip="Copy"
-                      onClick={() => navigator.clipboard.writeText(msg.text)}
+                      onClick={() => {
+                        navigator.clipboard.writeText(msg.text);
+                        toast.success('Copied to clipboard', {
+                          icon: <CopyCheck className="h-4 w-4" />,
+                        });
+                      }}
                     >
                       <Copy />
                     </MessageAction>
@@ -197,7 +206,12 @@ export default function ChatPage() {
                   <MessageActions className="justify-end">
                     <MessageAction
                       tooltip="Copy"
-                      onClick={() => navigator.clipboard.writeText(msg.text)}
+                      onClick={() => {
+                        navigator.clipboard.writeText(msg.text);
+                        toast.success('Copied to clipboard', {
+                          icon: <CopyCheck className="h-4 w-4" />,
+                        });
+                      }}
                     >
                       <Copy />
                     </MessageAction>
