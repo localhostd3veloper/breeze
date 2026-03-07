@@ -51,5 +51,5 @@ export function useCtrlShortcut(
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [key, options.preventDefault]);
+  }, [key, options.preventDefault, options.shift, options.alt]);
 }
