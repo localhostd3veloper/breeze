@@ -1,7 +1,7 @@
 export async function POST(req: Request) {
   const { message, model, history } = await req.json();
 
-  const upstream = await fetch(process.env.OLLAMA_API_URL!, {
+  const upstream = await fetch(`${process.env.OLLAMA_API_URL!}/completion`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
