@@ -1,5 +1,6 @@
+// FastAPI already emits typed NDJSON events — this route is a pure passthrough.
 export async function POST(req: Request) {
-  const { message, model, history } = await req.json();
+  const body = await req.json();
 
   const upstream = await fetch(`${process.env.OLLAMA_API_URL!}/completion`, {
     method: 'POST',
@@ -7,16 +8,17 @@ export async function POST(req: Request) {
       'Content-Type': 'application/json',
       'X-API-Key': process.env.OLLAMA_API_KEY!,
     },
-    body: JSON.stringify({ message, model, history }),
+    body: JSON.stringify(body),
   });
 
-  if (!upstream.ok) {
-    return new Response(`Upstream error: ${upstream.status}`, {
-      status: upstream.status,
-    });
+  if (!upstream.ok || !upstream.body) {
+    return new Response(
+      JSON.stringify({ type: 'error', message: `Upstream error: ${upstream.status}` }) + '\n',
+      { status: upstream.status, headers: { 'Content-Type': 'application/x-ndjson' } },
+    );
   }
 
   return new Response(upstream.body, {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    headers: { 'Content-Type': 'application/x-ndjson' },
   });
 }

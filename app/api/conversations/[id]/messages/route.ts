@@ -44,3 +44,49 @@ export async function GET(
 
   return NextResponse.json(data);
 }
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  await dbConnect();
+
+  const conversation = await Conversation.findById(id).lean();
+  if (!conversation) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  if (conversation.user.toString() !== session.user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const { role, content, reasoning, toolCalls, toolCallId } = await req.json();
+
+  const message = await ChatMessage.create({
+    conversationId: id,
+    role,
+    content,
+    ...(reasoning && { reasoning }),
+    ...(toolCalls?.length && { toolCalls }),
+    ...(toolCallId && { toolCallId }),
+  });
+
+  // Bump conversation updatedAt so it surfaces at the top of the list
+  await Conversation.findByIdAndUpdate(id, { updatedAt: new Date() });
+
+  const data: ChatMessageDTO = {
+    id: message._id.toString(),
+    role: message.role,
+    content: message.content,
+    ...(message.reasoning && { reasoning: message.reasoning }),
+    createdAt: (message.createdAt as Date).toISOString(),
+  };
+
+  return NextResponse.json(data, { status: 201 });
+}

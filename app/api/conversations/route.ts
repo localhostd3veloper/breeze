@@ -31,3 +31,24 @@ export async function GET() {
 
   return NextResponse.json(data);
 }
+
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { title } = await req.json();
+
+  await dbConnect();
+
+  const conversation = await Conversation.create({
+    user: session.user.id,
+    title: title?.trim().slice(0, 100) || 'New Chat',
+  });
+
+  return NextResponse.json(
+    { id: conversation._id.toString(), title: conversation.title },
+    { status: 201 },
+  );
+}

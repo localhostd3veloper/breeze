@@ -1,31 +1,51 @@
 'use client';
 
-import ChatInput from '@/components/Input';
-import { ChatMessages } from './components/chat-messages';
-import { useChatStream } from './hooks/useChatStream';
-import { AlertDescription, AlertTitle, Alert } from '@/components/ui/alert';
-import { Coffee } from 'lucide-react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { getChatHealth } from './utils/health';
+import { toast } from 'sonner';
+import ChatInput from '@/components/Input';
+import { ChatMessages } from '../components/chat-messages';
+import { useChatStream } from '../hooks/useChatStream';
+import { getChatHealth } from '../utils/health';
+import { useChatMessages } from '@/hooks/use-chat-messages';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Coffee } from 'lucide-react';
 
-export function ChatClient({ initialHealth }: { initialHealth: boolean }) {
-  const { handleSubmit } = useChatStream();
+interface ChatConversationClientProps {
+  conversationId: string;
+}
+
+export function ChatConversationClient({ conversationId }: ChatConversationClientProps) {
+  const router = useRouter();
+  const { handleSubmit } = useChatStream(conversationId);
+
+  const { data: messages, isLoading, isError, error } = useChatMessages(conversationId);
 
   const { data: isChatAvailable } = useQuery({
     queryKey: ['chatHealth'],
     queryFn: getChatHealth,
-    initialData: initialHealth,
     staleTime: 10_000,
     refetchInterval: 10_000,
   });
 
+  useEffect(() => {
+    if (!isError) return;
+    const status = error?.message;
+    if (status === '404' || status === '403') {
+      toast.error("Couldn't find that conversation");
+    } else {
+      toast.error('Failed to load conversation');
+    }
+    router.replace('/chat');
+  }, [isError, error, router]);
+
   return (
     <>
-      {/* Empty state — no messages until user starts a conversation */}
-      <ChatMessages messages={[]} />
+      <ChatMessages messages={messages ?? []} isLoading={isLoading} />
 
       <div className="mx-auto w-full max-w-3xl px-4 pb-4">
-        {!isChatAvailable && (
+        {isChatAvailable === false && (
           <Alert
             variant="destructive"
             className="mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300 border-orange-500/50 bg-orange-500/10 text-orange-600 dark:border-orange-500/30 dark:text-orange-400"

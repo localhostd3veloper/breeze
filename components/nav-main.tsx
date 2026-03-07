@@ -13,7 +13,6 @@ import { useCtrlShortcut } from '@/hooks/use-ctrl-shortcuts';
 import { useRouter } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Kbd } from './ui/kbd';
-import { useChatStore } from '@/store/chat';
 
 export function NavMain() {
   const router = useRouter();
@@ -32,8 +31,6 @@ export function NavMain() {
     console.log('Search triggered');
   });
 
-  const { clearMessages } = useChatStore();
-
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
@@ -41,12 +38,7 @@ export function NavMain() {
         <SidebarMenuItem>
           <Tooltip>
             <TooltipTrigger asChild>
-              <SidebarMenuButton
-                onClick={() => {
-                  clearMessages();
-                  router.push('/chat');
-                }}
-              >
+              <SidebarMenuButton onClick={() => router.push('/chat')}>
                 <PlusSquare />
                 <span>New Chat</span>
                 {open && (

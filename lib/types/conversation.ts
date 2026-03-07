@@ -25,4 +25,6 @@ export interface ChatMessageDTO {
   toolCalls?: IToolCallDTO[];
   toolCallId?: string;
   createdAt: string;
+  // Client-only: present while the assistant message is being streamed
+  isStreaming?: boolean;
 }

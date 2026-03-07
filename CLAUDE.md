@@ -32,10 +32,26 @@ Env vars are validated at startup via Zod in [lib/env.ts](lib/env.ts) — the ap
 
 ### Request Flow
 
-1. Client submits a message via `useChatStream` hook
-2. Hits `/api/chat` (Next.js route) which proxies the request to `OLLAMA_API_URL/completion`
-3. Streams the response back as plain text
-4. Client appends chunks to the Zustand store
+1. Client submits a message via `useChatStream(conversationId?)` hook
+2. If no `conversationId`: `POST /api/conversations` creates one, cache is pre-populated, router navigates to `/chat/{id}`
+3. User message is saved to DB (`POST /api/conversations/{id}/messages`) and added to TanStack Query cache
+4. `POST /api/chat` streams NDJSON typed events back (`{"type":"text","content":"..."}`)
+5. Each event updates the TanStack Query cache live (`queryClient.setQueryData`)
+6. On stream complete, assistant message is saved to DB
+
+### Stream Event Protocol (NDJSON)
+
+`/api/chat` emits one JSON line per event. Defined in [lib/types/stream.ts](lib/types/stream.ts):
+- `{"type":"text","content":"..."}` — text chunk
+- `{"type":"reasoning","content":"..."}` — reasoning/thinking chunk
+- `{"type":"done"}` — stream finished
+- `{"type":"error","message":"..."}` — stream error
+
+### Routing
+
+- `/chat` — empty state, starts new conversations (no conversationId)
+- `/chat/[id]` — shows a specific conversation; loads from TanStack Query cache (populated during stream) or fetches from DB on direct navigation
+- Invalid/unauthorized IDs → `toast.error` + redirect to `/chat`
 
 ### Auth
 
@@ -53,8 +69,9 @@ Env vars are validated at startup via Zod in [lib/env.ts](lib/env.ts) — the ap
 
 ### State Management
 
-- **Zustand** store ([store/chat.ts](store/chat.ts)) persisted to `localStorage` under key `breeze-chat` — holds messages and auth state
-- **TanStack Query** wraps client-side data fetching (e.g. polling chat health every 10s)
+- **TanStack Query cache** is the single source of truth for all message state. Key: `['conversations', id, 'messages']`. During streaming, `queryClient.setQueryData` pushes chunks live. `staleTime: Infinity` prevents background refetch from clobbering in-flight stream data.
+- **Zustand** store ([store/chat.ts](store/chat.ts)) persisted to `localStorage` — holds auth state only. Do NOT add message state here.
+- Race condition prevention: assistant messages carry `isStreaming: true` in the cache while streaming. The `/chat/[id]` page uses the cache-first data — no separate streaming flag needed.
 
 ### UI
 

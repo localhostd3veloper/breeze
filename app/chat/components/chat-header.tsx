@@ -7,12 +7,17 @@ import {
 } from '@/components/ui/tooltip';
 import { ConversationDownload } from '@/components/ai-elements/conversation';
 import { Heart } from 'lucide-react';
-import { useChatStream } from '../hooks/useChatStream';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { useChatMessages } from '@/hooks/use-chat-messages';
 
 export function ChatHeader() {
-  const { messages } = useChatStream();
+  const params = useParams<{ id?: string }>();
+  const conversationId = params?.id;
+
+  const { data: messages } = useChatMessages(conversationId ?? '');
+
   return (
     <header className="static z-10 lg:absolute top-0 left-0 right-0 lg:w-full flex items-center justify-between border-b lg:border-none p-3">
       <div className="logo font-satisfy text-lg md:text-xl flex items-center">
@@ -28,12 +33,12 @@ export function ChatHeader() {
         </Tooltip>
       </div>
       <div className="flex items-center gap-2">
-        {messages.length > 0 && (
+        {messages && messages.length > 0 && (
           <ConversationDownload
             className="static rounded-md"
             messages={messages.map((m) => ({
               role: m.role as 'user' | 'assistant' | 'system',
-              content: m.text,
+              content: m.content,
             }))}
           />
         )}
