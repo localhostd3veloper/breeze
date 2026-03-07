@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useState } from 'react';
 import {
   Conversation,
   ConversationContent,
@@ -26,13 +26,10 @@ interface ChatMessagesProps {
 }
 
 export function ChatMessages({ messages }: ChatMessagesProps) {
-  const [greeting, setGreeting] = useState(emptyStateMessages[0]);
-
-  useEffect(() => {
-    setGreeting(
+  const [greeting] = useState(
+    () =>
       emptyStateMessages[Math.floor(Math.random() * emptyStateMessages.length)],
-    );
-  }, []);
+  );
 
   return (
     <Conversation className="flex-1">

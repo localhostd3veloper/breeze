@@ -1,47 +1,58 @@
 'use server';
 
 import { loginSchema, signupSchema } from '@/lib/validations/auth';
+import { signUpAction } from '@/app/actions/auth';
 
-export async function loginUser(prevState: any, formData: FormData) {
+type ActionState = {
+  success?: boolean;
+  message?: string;
+  error?: string;
+} | null;
+
+export async function loginUser(prevState: ActionState, formData: FormData) {
   try {
     const data = Object.fromEntries(formData.entries());
     const validatedData = loginSchema.safeParse(data);
 
     if (!validatedData.success) {
-      return {
-        error: 'Invalid fields',
-        errors: validatedData.error.flatten().fieldErrors,
-      };
+      return { error: 'Invalid fields' };
     }
 
-    // Replace with real authentication logic
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Simulating successful login
-    return { success: true, message: 'Logged in successfully' };
-  } catch (error) {
+    // signIn is a client-side function so it cannot be called in a server action directly.
+    // The LoginForm component calls signIn("credentials", ...) from the client.
+    // This action is a stub to satisfy the import in login-form.tsx.
+    return { success: true, message: 'Redirecting...' };
+  } catch {
     return { error: 'Something went wrong. Please try again.' };
   }
 }
 
-export async function signupUser(prevState: any, formData: FormData) {
+export async function signupUser(prevState: ActionState, formData: FormData) {
   try {
     const data = Object.fromEntries(formData.entries());
     const validatedData = signupSchema.safeParse(data);
 
     if (!validatedData.success) {
       return {
-        error: 'Invalid fields',
-        errors: validatedData.error.flatten().fieldErrors,
+        error: validatedData.error.issues[0]?.message ?? 'Invalid fields',
       };
     }
 
-    // Replace with real user creation logic
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const result = await signUpAction({
+      name: validatedData.data.name,
+      email: validatedData.data.email,
+      password: validatedData.data.password,
+    });
 
-    // Simulating successful signup
-    return { success: true, message: 'Account created successfully' };
-  } catch (error) {
+    if (!result.success) {
+      return { error: result.error };
+    }
+
+    return {
+      success: true,
+      message: 'Account created successfully! Please log in.',
+    };
+  } catch {
     return { error: 'Something went wrong. Please try again.' };
   }
 }

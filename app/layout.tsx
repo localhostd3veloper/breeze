@@ -23,11 +23,14 @@ export const metadata: Metadata = {
 
 import Providers from '@/components/providers';
 
-export default function RootLayout({
+import dbConnect from '@/lib/db/mongodb';
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await dbConnect();
   return (
     <html lang="en" suppressHydrationWarning>
       <body

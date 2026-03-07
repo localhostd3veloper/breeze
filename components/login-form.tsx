@@ -7,14 +7,14 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@/lib/validations/auth';
-import { loginUser } from '@/lib/actions/auth';
 import { useState } from 'react';
+import { signIn } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export function LoginForm({
@@ -22,6 +22,9 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<'div'>) {
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextRoute = searchParams.get('next') ?? '/chat';
   const {
     handleSubmit,
     control,
@@ -36,16 +39,17 @@ export function LoginForm({
 
   const onSubmit = async (data: LoginInput) => {
     setError(null);
-    const formData = new FormData();
-    formData.append('email', data.email);
-    formData.append('password', data.password);
+    const result = await signIn('credentials', {
+      email: data.email,
+      password: data.password,
+      redirect: false,
+    });
 
-    const result = await loginUser(null, formData);
-    if (result.error) {
-      setError(result.error);
+    if (result?.error) {
+      setError('Incorrect email or password. Please try again.');
     } else {
-      // Handle success (e.g., redirect or show message)
-      console.log(result.message);
+      router.push(nextRoute);
+      router.refresh();
     }
   };
 
@@ -130,9 +134,9 @@ export function LoginForm({
           <Field>
             <FieldDescription className="text-center mt-4">
               Don&apos;t have an account?{' '}
-              <a href="/signup" className="underline underline-offset-4">
+              <Link href="/signup" className="underline underline-offset-4">
                 Sign up
-              </a>
+              </Link>
             </FieldDescription>
           </Field>
         </FieldGroup>

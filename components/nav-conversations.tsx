@@ -23,6 +23,7 @@ import {
   ShareIcon,
   Trash2Icon,
 } from 'lucide-react';
+import Link from 'next/link';
 
 function useConversations() {
   const isLoading = false;
@@ -166,9 +167,9 @@ export function NavConversations() {
         {conversations.map((item) => (
           <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild>
-              <a href={item.id}>
+              <Link href={item.id}>
                 <span>{item.name}</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

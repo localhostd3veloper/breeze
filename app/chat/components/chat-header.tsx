@@ -9,6 +9,7 @@ import { ConversationDownload } from '@/components/ai-elements/conversation';
 import { Heart } from 'lucide-react';
 import { useChatStream } from '../hooks/useChatStream';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import Link from 'next/link';
 
 export function ChatHeader() {
   const { messages } = useChatStream();
@@ -20,9 +21,9 @@ export function ChatHeader() {
           <TooltipTrigger className="flex gap-1">Breeze.</TooltipTrigger>
           <TooltipContent side="right" className="flex items-center gap-0.5">
             Made with <Heart className="size-3 text-destructive" /> by
-            <a href="https://github.com/localhostd3veloper" target="_blank">
+            <Link href="https://github.com/localhostd3veloper" target="_blank">
               @localhostd3veloper
-            </a>
+            </Link>
           </TooltipContent>
         </Tooltip>
       </div>

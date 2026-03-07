@@ -7,7 +7,6 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { useForm, Controller } from 'react-hook-form';
@@ -15,12 +14,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { signupSchema, type SignupInput } from '@/lib/validations/auth';
 import { signupUser } from '@/lib/actions/auth';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<'div'>) {
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const router = useRouter();
   const {
     handleSubmit,
     control,
@@ -47,8 +50,9 @@ export function SignupForm({
     if (result.error) {
       setError(result.error);
     } else {
-      // Handle success (e.g., redirect or show message)
-      console.log(result.message);
+      setSuccess(true);
+      // Redirect to login after a short delay
+      setTimeout(() => router.push('/login'), 1500);
     }
   };
 
@@ -72,6 +76,12 @@ export function SignupForm({
           {error && (
             <div className="text-red-500 text-sm text-center font-medium mb-4">
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="text-green-500 text-sm text-center font-medium mb-4">
+              Account created! Redirecting to login...
             </div>
           )}
 
@@ -171,7 +181,7 @@ export function SignupForm({
           />
 
           <Field className="mt-2">
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || success}>
               {isSubmitting ? 'Creating...' : 'Create Account'}
             </Button>
           </Field>
@@ -179,9 +189,9 @@ export function SignupForm({
           <Field className="">
             <FieldDescription className="px-6 text-center mt-4">
               Already have an account?{' '}
-              <a href="/login" className="underline underline-offset-4">
+              <Link href="/login" className="underline underline-offset-4">
                 Sign in
-              </a>
+              </Link>
             </FieldDescription>
           </Field>
         </FieldGroup>
