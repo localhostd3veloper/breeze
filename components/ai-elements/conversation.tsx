@@ -46,6 +46,7 @@ export const ConversationEmptyState = ({
   description = "Start a conversation to see messages here",
   icon,
   children,
+  suppressHydrationWarning,
   ...props
 }: ConversationEmptyStateProps) => (
   <div
@@ -53,15 +54,16 @@ export const ConversationEmptyState = ({
       "flex size-full flex-col items-center justify-center gap-3 p-8 text-center",
       className
     )}
+    suppressHydrationWarning={suppressHydrationWarning}
     {...props}
   >
     {children ?? (
       <>
         {icon && <div className="text-muted-foreground">{icon}</div>}
         <div className="space-y-1">
-          <h3 className="font-medium text-sm">{title}</h3>
+          <h3 className="font-medium text-sm" suppressHydrationWarning={suppressHydrationWarning}>{title}</h3>
           {description && (
-            <p className="text-muted-foreground text-sm">{description}</p>
+            <p className="text-muted-foreground text-sm" suppressHydrationWarning={suppressHydrationWarning}>{description}</p>
           )}
         </div>
       </>

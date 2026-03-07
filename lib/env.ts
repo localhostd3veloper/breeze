@@ -5,6 +5,7 @@ const envSchema = z.object({
   OLLAMA_API_KEY: z.string().describe('Ollama API Key'),
   PLATFORM_PASSWORD: z.string().describe('Platform Password'),
   MONGO_URI: z.url().describe('MongoDB URI'),
+  NEXTAUTH_SECRET: z.string().min(1).describe('NextAuth JWT secret'),
 });
 
 export const env = envSchema.parse(process.env);

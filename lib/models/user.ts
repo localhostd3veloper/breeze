@@ -13,7 +13,7 @@ export interface IUser extends Document {
 
 const UserSchema: Schema = new Schema(
   {
-    isDemo: { type: Boolean, default: false },
+    isDemo: { type: Boolean, default: true },
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String }, // Optional if using OAuth in the future

@@ -8,9 +8,19 @@ export async function proxy(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
+  const { pathname } = request.nextUrl;
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+  if (isAuthPage) {
+    if (token) {
+      return NextResponse.redirect(new URL('/chat', request.url));
+    }
+    return NextResponse.next();
+  }
+
   if (!token) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('next', request.nextUrl.pathname);
+    loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -18,5 +28,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/chat/:path*'],
+  matcher: ['/chat/:path*', '/login', '/signup'],
 };

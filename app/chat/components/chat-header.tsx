@@ -28,13 +28,15 @@ export function ChatHeader() {
         </Tooltip>
       </div>
       <div className="flex items-center gap-2">
-        <ConversationDownload
-          className="static rounded-md"
-          messages={messages.map((m) => ({
-            role: m.role as 'user' | 'assistant' | 'system',
-            content: m.text,
-          }))}
-        />
+        {messages.length > 0 && (
+          <ConversationDownload
+            className="static rounded-md"
+            messages={messages.map((m) => ({
+              role: m.role as 'user' | 'assistant' | 'system',
+              content: m.text,
+            }))}
+          />
+        )}
         <ToggleTheme />
       </div>
     </header>

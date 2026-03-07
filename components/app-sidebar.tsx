@@ -27,7 +27,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter();
 
   const handleLogoClick = () => {
-    open ? router.push('/chat') : toggleSidebar();
+    if (open) router.push('/chat');
+    else toggleSidebar();
   };
 
   useCtrlShortcut('b', toggleSidebar);
@@ -59,7 +60,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <Tooltip>
           <TooltipTrigger asChild>
             <SidebarTrigger
-              className={cn('hidden', (open || isMobile) && 'block')}
+              className={cn(
+                'hidden ',
+                (open || isMobile) && ' flex justify-center items-center',
+              )}
             />
           </TooltipTrigger>
           {open && (

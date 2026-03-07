@@ -23,10 +23,10 @@ export default async function AuthPage({
             href="#"
             className="flex items-center gap-2 font-medium font-satisfy"
           >
-            <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Palmtree className="size-4 stroke-[1.5]" />
+            <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <Palmtree className="size-6 stroke-[1.5]" />
             </div>
-            Breeze
+            <span className="text-2xl"> Breeze.</span>
           </a>
         </div>
         <div className="flex flex-1 items-center justify-center">

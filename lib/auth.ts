@@ -45,6 +45,10 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           image: user.profileURL ?? null,
+          isDemo: user.isDemo,
+          profileURL: user.profileURL ?? null,
+          createdAt: (user.createdAt as Date).toISOString(),
+          updatedAt: (user.updatedAt as Date).toISOString(),
         };
       },
     }),
@@ -55,13 +59,27 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        const u = user as typeof user & {
+          isDemo: boolean;
+          profileURL: string | null;
+          createdAt: string;
+          updatedAt: string;
+        };
+        token.id = u.id;
+        token.isDemo = u.isDemo;
+        token.profileURL = u.profileURL;
+        token.createdAt = u.createdAt;
+        token.updatedAt = u.updatedAt;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
+        session.user.id = token.id;
+        session.user.isDemo = token.isDemo;
+        session.user.profileURL = token.profileURL;
+        session.user.createdAt = token.createdAt;
+        session.user.updatedAt = token.updatedAt;
       }
       return session;
     },
