@@ -79,17 +79,19 @@ export default async function Page() {
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
               <Link href="/chat">
-                <Button className="gap-2">
+                <Button size="lg" className="gap-2">
                   Go to app <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
             ) : (
               <>
                 <Link href="/login">
-                  <Button variant="ghost">Sign in</Button>
+                  <Button size="lg" variant="ghost">
+                    Sign in
+                  </Button>
                 </Link>
                 <Link href="/signup">
-                  <Button>Get started</Button>
+                  <Button size="lg">Get started</Button>
                 </Link>
               </>
             )}
@@ -108,22 +110,22 @@ export default async function Page() {
         </div>
 
         <div className="relative z-10 flex flex-col items-center gap-6">
-          <Badge variant="secondary" className="gap-1.5 px-3 py-1 text-xs">
+          <Badge variant="secondary" className="animate-in fade-in slide-in-from-bottom-3 gap-1.5 px-3 py-1 text-xs duration-700 fill-mode-both">
             <Sparkles className="h-3 w-3 text-primary" />
             Self-hosted · Open source
           </Badge>
 
-          <h1 className="max-w-3xl text-5xl font-bold tracking-tight md:text-7xl">
+          <h1 className="animate-in fade-in slide-in-from-bottom-4 max-w-3xl text-5xl font-bold tracking-tight duration-700 [animation-delay:150ms] fill-mode-both md:text-7xl">
             AI chat that stays{' '}
             <span className="text-primary">on your terms</span>
           </h1>
 
-          <p className="max-w-xl text-lg text-muted-foreground">
+          <p className="animate-in fade-in slide-in-from-bottom-3 max-w-xl text-lg text-muted-foreground duration-700 [animation-delay:300ms] fill-mode-both">
             Breeze wraps powerful self-hosted language models in a clean, fast
             interface. Private by design — no cloud, no tracking.
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <div className="animate-in fade-in slide-in-from-bottom-2 flex flex-wrap items-center justify-center gap-3 pt-2 duration-700 [animation-delay:450ms] fill-mode-both">
             {isLoggedIn ? (
               <Link href="/chat">
                 <Button size="lg" className="gap-2 px-6">
@@ -148,8 +150,8 @@ export default async function Page() {
         </div>
 
         {/* Floating chat preview */}
-        <div className="relative z-10 mt-16 w-full max-w-2xl">
-          <div className="rounded-2xl border border-border bg-card shadow-2xl shadow-black/10">
+        <div className="animate-in fade-in slide-in-from-bottom-4 relative z-10 mt-16 w-full max-w-2xl duration-700 [animation-delay:600ms] fill-mode-both">
+          <div className="rounded-2xl border border-border bg-card shadow-2xl shadow-black/10 transition-transform duration-500 hover:scale-[1.02]">
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
               <div className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
               <div className="h-2.5 w-2.5 rounded-full bg-yellow-400/70" />
@@ -198,7 +200,7 @@ export default async function Page() {
           {features.map(({ icon: Icon, title, description }) => (
             <Card
               key={title}
-              className="group border-border/60 bg-card transition-shadow duration-300 hover:shadow-lg hover:shadow-primary/5"
+              className="group border-border/60 bg-card transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/5"
             >
               <CardContent className="p-6">
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/15">
@@ -235,7 +237,7 @@ export default async function Page() {
             {steps.map(({ number, title, description }) => (
               <div
                 key={number}
-                className="flex flex-col items-center text-center"
+                className="flex flex-col items-center text-center transition-transform duration-300 hover:scale-[1.03]"
               >
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10">
                   <span className="font-mono text-sm font-bold text-primary">
