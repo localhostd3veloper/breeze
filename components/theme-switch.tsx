@@ -20,30 +20,21 @@ export function ToggleTheme() {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
-    // Render a stable placeholder that matches server + client
-    return (
-      <Button variant="outline" className="gap-2">
-        <Laptop className="h-4 w-4" />
-        <span>Theme</span>
-      </Button>
-    );
-  }
-
   const currentTheme = theme === 'system' ? resolvedTheme : theme;
 
-  const ThemeIcon =
-    currentTheme === 'dark' ? Moon : currentTheme === 'light' ? Sun : Laptop;
-
-  const themeLabel =
-    theme === 'system' ? 'System' : currentTheme === 'dark' ? 'Dark' : 'Light';
+  const ThemeIcon = mounted
+    ? currentTheme === 'dark'
+      ? Moon
+      : currentTheme === 'light'
+        ? Sun
+        : Laptop
+    : Laptop;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="gap-2">
           <ThemeIcon className="h-4 w-4" />
-          <span>{themeLabel}</span>
         </Button>
       </DropdownMenuTrigger>
 

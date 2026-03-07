@@ -165,10 +165,10 @@ const PromptInputAttachmentsDisplay = () => {
 
 interface ChatInputProps {
   onSubmit?: (text: string, model: string) => Promise<void>;
-  isAuthenticated: boolean;
+  isChatAvailable: boolean;
 }
 
-const ChatInput = ({ onSubmit, isAuthenticated }: ChatInputProps) => {
+const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
   const [model, setModel] = useState<string>(models[0].id);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const [status, setStatus] = useState<
@@ -202,7 +202,14 @@ const ChatInput = ({ onSubmit, isAuthenticated }: ChatInputProps) => {
         <PromptInput globalDrop multiple onSubmit={handleSubmit}>
           <PromptInputAttachmentsDisplay />
           <PromptInputBody>
-            <PromptInputTextarea disabled={!isAuthenticated} />
+            <PromptInputTextarea
+              disabled={!isChatAvailable}
+              placeholder={
+                !isChatAvailable
+                  ? 'Shhh, the AI is sleeping...'
+                  : 'Type a message...'
+              }
+            />
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
