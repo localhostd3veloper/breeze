@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import { LoginForm } from '@/components/login-form';
 import { SignupForm } from '@/components/signup-form';
-import { Palmtree } from 'lucide-react';
 import Image from 'next/image';
 
 export default async function AuthPage({
@@ -23,9 +22,13 @@ export default async function AuthPage({
             href="#"
             className="flex items-center gap-2 font-medium font-satisfy"
           >
-            <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Palmtree className="size-6 stroke-[1.5]" />
-            </div>
+            <Image
+              src="/favicon.svg"
+              alt="Breeze Logo"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+            />
             <span className="text-2xl"> Breeze.</span>
           </a>
         </div>

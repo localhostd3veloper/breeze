@@ -16,9 +16,60 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+const APP_NAME = 'Breeze';
+const APP_DESCRIPTION =
+  'Breeze is a fast, private AI chat assistant powered by self-hosted LLMs. Chat with powerful language models without sending data to the cloud.';
+const APP_URL = process.env.NEXTAUTH_URL ?? 'https://breeze.local';
+
 export const metadata: Metadata = {
-  title: 'Breeze',
-  description: 'Your personal AI assistant',
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: APP_NAME,
+    template: `%s · ${APP_NAME}`,
+  },
+  description: APP_DESCRIPTION,
+  applicationName: APP_NAME,
+  keywords: [
+    'AI chat',
+    'self-hosted LLM',
+    'Ollama',
+    'private AI assistant',
+    'local AI',
+    'open source chat',
+  ],
+  authors: [{ name: 'Breeze' }],
+  creator: 'Breeze',
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: { index: false, follow: false },
+  },
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
+  openGraph: {
+    type: 'website',
+    url: APP_URL,
+    siteName: APP_NAME,
+    title: APP_NAME,
+    description: APP_DESCRIPTION,
+    images: [
+      {
+        url: '/breeze.svg',
+        width: 512,
+        height: 512,
+        alt: 'Breeze logo',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary',
+    title: APP_NAME,
+    description: APP_DESCRIPTION,
+    images: ['/breeze.svg'],
+  },
 };
 
 import Providers from '@/components/providers';

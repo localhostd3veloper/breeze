@@ -24,35 +24,39 @@ import {
   Trash2Icon,
 } from 'lucide-react';
 import Link from 'next/link';
-
-function useConversations() {
-  const isLoading = false;
-  const conversations = [
-    {
-      id: '1',
-      name: 'General',
-    },
-  ];
-  return {
-    isLoading,
-    conversations,
-  };
-}
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  useConversations,
+  useArchiveConversation,
+  useDeleteConversation,
+  usePinConversation,
+} from '@/hooks/use-conversations';
 
 export function NavConversations() {
   const { isMobile } = useSidebar();
 
-  const { conversations } = useConversations();
+  const { data: conversations = [], isLoading } = useConversations();
+  const archiveMutation = useArchiveConversation();
+  const deleteMutation = useDeleteConversation();
+  const pinMutation = usePinConversation();
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Conversations</SidebarGroupLabel>
       <SidebarMenu>
+        {isLoading &&
+          Array.from({ length: 5 }).map((_, i) => (
+            <SidebarMenuItem key={i}>
+              <SidebarMenuButton>
+                <Skeleton className="h-4 w-full rounded-md" />
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
         {conversations.map((item) => (
-          <SidebarMenuItem key={item.name}>
+          <SidebarMenuItem key={item.id}>
             <SidebarMenuButton asChild>
               <Link href={`/chat/${item.id}`}>
-                <span className="truncate font-[450]">{item.name}</span>
+                <span className="truncate font-[450]">{item.title}</span>
               </Link>
             </SidebarMenuButton>
             <DropdownMenu>
@@ -70,11 +74,20 @@ export function NavConversations() {
                 side={isMobile ? 'bottom' : 'right'}
                 align={isMobile ? 'end' : 'start'}
               >
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    pinMutation.mutate({
+                      id: item.id,
+                      isPinned: !item.isPinned,
+                    })
+                  }
+                >
                   <PinIcon className="text-muted-foreground" />
-                  <span>Pin</span>
+                  <span>{item.isPinned ? 'Unpin' : 'Pin'}</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => archiveMutation.mutate(item.id)}
+                >
                   <ArchiveIcon className="text-muted-foreground" />
                   <span>Archive</span>
                 </DropdownMenuItem>
@@ -83,7 +96,9 @@ export function NavConversations() {
                   <span>Share</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => deleteMutation.mutate(item.id)}
+                >
                   <Trash2Icon className="text-destructive" />
                   <span>Delete</span>
                 </DropdownMenuItem>
@@ -91,12 +106,11 @@ export function NavConversations() {
             </DropdownMenu>
           </SidebarMenuItem>
         ))}
-        <SidebarMenuItem>
-          <SidebarMenuButton className="text-sidebar-foreground/70">
-            <MoreHorizontalIcon className="text-sidebar-foreground/70" />
-            <span>More</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
+        {!isLoading && conversations.length === 0 && (
+          <div className="px-2 py-1 text-sm text-sidebar-foreground/50">
+            No conversations yet
+          </div>
+        )}
       </SidebarMenu>
     </SidebarGroup>
   );

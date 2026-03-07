@@ -33,7 +33,7 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
 
   return (
     <Conversation className="flex-1">
-      <ConversationContent className="mx-auto w-full max-w-3xl gap-2 px-2 py-3">
+      <ConversationContent className="mx-auto w-full max-w-3xl gap-2 px-4 py-6">
         {messages.length === 0 ? (
           <ConversationEmptyState
             title={greeting}
