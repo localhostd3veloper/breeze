@@ -2,13 +2,17 @@
 
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ChatMessageDTO } from '@/lib/types/conversation';
 import type { StreamEvent } from '@/lib/types/stream';
 
 const MESSAGES_KEY = (id: string) => ['conversations', id, 'messages'];
 
-function getMessages(qc: ReturnType<typeof useQueryClient>, convId: string): ChatMessageDTO[] {
+function getMessages(
+  qc: ReturnType<typeof useQueryClient>,
+  convId: string,
+): ChatMessageDTO[] {
   return qc.getQueryData<ChatMessageDTO[]>(MESSAGES_KEY(convId)) ?? [];
 }
 
@@ -17,10 +21,14 @@ function setMessages(
   convId: string,
   updater: (prev: ChatMessageDTO[]) => ChatMessageDTO[],
 ) {
-  qc.setQueryData<ChatMessageDTO[]>(MESSAGES_KEY(convId), (prev) => updater(prev ?? []));
+  qc.setQueryData<ChatMessageDTO[]>(MESSAGES_KEY(convId), (prev) =>
+    updater(prev ?? []),
+  );
 }
 
-async function* parseNdjson(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamEvent> {
+async function* parseNdjson(
+  body: ReadableStream<Uint8Array>,
+): AsyncGenerator<StreamEvent> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
@@ -58,6 +66,7 @@ async function* parseNdjson(body: ReadableStream<Uint8Array>): AsyncGenerator<St
 export function useChatStream(conversationId?: string) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   const handleSubmit = useCallback(
     async (text: string, model: string): Promise<void> => {
@@ -103,7 +112,11 @@ export function useChatStream(conversationId?: string) {
       };
 
       // --- 3. Optimistically add to cache ---
-      setMessages(queryClient, finalConvId, (prev) => [...prev, userMsg, assistantMsg]);
+      setMessages(queryClient, finalConvId, (prev) => [
+        ...prev,
+        userMsg,
+        assistantMsg,
+      ]);
 
       // --- 4. Save user message to DB (fire-and-forget) ---
       fetch(`/api/conversations/${finalConvId}/messages`, {
@@ -114,13 +127,20 @@ export function useChatStream(conversationId?: string) {
 
       // --- 5. Build history from cache (excluding the two messages just added) ---
       const history = getMessages(queryClient, finalConvId)
-        .filter((m) => m.id !== userMsgId && m.id !== assistantMsgId && !m.isStreaming)
+        .filter(
+          (m) =>
+            m.id !== userMsgId && m.id !== assistantMsgId && !m.isStreaming,
+        )
         .map((m) => ({ role: m.role, content: m.content }));
 
       // --- 6. Start stream ---
       const streamRes = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.user?.id && { 'X-User-Id': session.user.id }),
+          'X-Session-Id': finalConvId,
+        },
         body: JSON.stringify({ message: text, model, history }),
       });
 
@@ -128,7 +148,11 @@ export function useChatStream(conversationId?: string) {
         setMessages(queryClient, finalConvId, (prev) =>
           prev.map((m) =>
             m.id === assistantMsgId
-              ? { ...m, content: `Error: ${streamRes.status} ${streamRes.statusText}`, isStreaming: false }
+              ? {
+                  ...m,
+                  content: `Error: ${streamRes.status} ${streamRes.statusText}`,
+                  isStreaming: false,
+                }
               : m,
           ),
         );
@@ -158,7 +182,11 @@ export function useChatStream(conversationId?: string) {
           setMessages(queryClient, finalConvId, (prev) =>
             prev.map((m) =>
               m.id === assistantMsgId
-                ? { ...m, content: `Error: ${event.message}`, isStreaming: false }
+                ? {
+                    ...m,
+                    content: `Error: ${event.message}`,
+                    isStreaming: false,
+                  }
                 : m,
             ),
           );
@@ -203,7 +231,7 @@ export function useChatStream(conversationId?: string) {
         });
       }
     },
-    [conversationId, router, queryClient],
+    [conversationId, router, queryClient, session?.user.id],
   );
 
   return { handleSubmit };

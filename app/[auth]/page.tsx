@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { LoginForm } from '@/components/login-form';
 import { SignupForm } from '@/components/signup-form';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default async function AuthPage({
   params,
@@ -18,8 +19,8 @@ export default async function AuthPage({
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
-          <a
-            href="#"
+          <Link
+            href="/"
             className="flex items-center gap-2 font-medium font-satisfy"
           >
             <Image
@@ -30,7 +31,7 @@ export default async function AuthPage({
               className="h-8 w-8"
             />
             <span className="text-2xl"> Breeze.</span>
-          </a>
+          </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">

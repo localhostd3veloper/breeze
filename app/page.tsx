@@ -100,17 +100,20 @@ export default async function Page() {
       </header>
 
       {/* Hero */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center px-6 pt-14 text-center">
+      <section className="relative flex min-h-screen flex-col items-center justify-center px-6 pt-20 md:pt-16 text-center">
         {/* Background glow */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 overflow-hidden"
         >
-          <div className="absolute left-1/2 top-1/3 h-150 w-150 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[120px]" />
+          <div className="absolute left-1/2 top-1/3 h-200 w-200 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[120px]" />
         </div>
 
         <div className="relative z-10 flex flex-col items-center gap-6">
-          <Badge variant="secondary" className="animate-in fade-in slide-in-from-bottom-3 gap-1.5 px-3 py-1 text-xs duration-700 fill-mode-both">
+          <Badge
+            variant="secondary"
+            className="animate-in fade-in slide-in-from-bottom-3 gap-1.5 px-3 py-1 text-xs duration-700 fill-mode-both"
+          >
             <Sparkles className="h-3 w-3 text-primary" />
             Self-hosted · Open source
           </Badge>

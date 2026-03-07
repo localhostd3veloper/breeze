@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
 import { Geist_Mono, Manrope } from 'next/font/google';
 import './globals.css';
@@ -87,6 +88,7 @@ export default async function RootLayout({
       <body
         className={`${manrope.variable} ${geistMono.variable} antialiased font-sans`}
       >
+        <Analytics />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
