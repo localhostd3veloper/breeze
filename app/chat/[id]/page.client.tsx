@@ -56,7 +56,7 @@ export function ChatConversationClient({
           key={conversationId}
           className="flex flex-col flex-1 min-h-0"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          animate={{ opacity: isLoading ? 0 : 1 }}
           transition={{ duration: 1, ease: 'easeOut' }}
         >
           <ChatMessages
