@@ -33,6 +33,7 @@ import {
   ShareIcon,
   Trash2Icon,
   GemIcon,
+  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -42,6 +43,7 @@ import {
   useArchiveConversation,
   useDeleteConversation,
   usePinConversation,
+  useRegenerateTitle,
 } from '@/hooks/use-conversations';
 import { usePathname } from 'next/navigation';
 
@@ -52,6 +54,7 @@ export function NavConversations() {
   const archiveMutation = useArchiveConversation();
   const deleteMutation = useDeleteConversation();
   const pinMutation = usePinConversation();
+  const regenerateTitleMutation = useRegenerateTitle();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   return (
@@ -115,6 +118,12 @@ export function NavConversations() {
                   <DropdownMenuItem>
                     <ShareIcon className="text-muted-foreground" />
                     <span>Share</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => regenerateTitleMutation.mutate(item.id)}
+                  >
+                    <Sparkles className="text-muted-foreground" />
+                    <span>Regenerate Title</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

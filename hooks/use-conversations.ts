@@ -83,6 +83,26 @@ export function useDeleteConversation() {
   });
 }
 
+export function useRegenerateTitle() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/conversations/${id}/summarize`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to regenerate title');
+      const { title } = await res.json();
+      return { id, title };
+    },
+    onSuccess: ({ id, title }) => {
+      queryClient.setQueryData<ConversationDTO[]>(QUERY_KEY, (old = []) =>
+        old.map((c) => (c.id === id ? { ...c, title } : c)),
+      );
+    },
+  });
+}
+
 export function usePinConversation() {
   const queryClient = useQueryClient();
 
