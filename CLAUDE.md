@@ -4,83 +4,111 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+**Package manager:** Bun (use `bun` instead of `npm` for installs)
+
 ```bash
-bun dev          # Start development server (Next.js on port 3000)
-bun build        # Production build
-bun start        # Start production server
-bun lint         # Run ESLint
-bun lint:fix     # Run ESLint with auto-fix
+# Frontend
+bun run dev          # Start Next.js dev server (port 3000)
+bun run build        # Production build
+bun run lint         # ESLint check
+bun run lint:fix     # Auto-fix lint issues
+
+# Backend (FastAPI)
+cd backend && python main.py    # Start FastAPI server (port 8000)
+# or: cd backend && uvicorn app:app --reload
 ```
 
-## Required Environment Variables
+No test runner is configured.
 
-Set in `.env.local`:
+## Architecture Overview
 
-| Variable            | Description                        |
-| ------------------- | ---------------------------------- |
-| `MONGO_URI`         | MongoDB connection string          |
-| `NEXTAUTH_SECRET`   | Secret for NextAuth JWT signing    |
-| `OLLAMA_API_URL`    | URL of the self-hosted LLM backend |
-| `OLLAMA_API_KEY`    | API key for the LLM backend        |
-| `PLATFORM_PASSWORD` | Platform-level password            |
+Full-stack AI chat app: **Next.js 16 (App Router) frontend** → **FastAPI backend** → **Ollama (local LLM)** + **OpenAI (summarization)**, persisted in **MongoDB**.
 
-Env vars are validated at startup via Zod in [lib/env.ts](lib/env.ts) — the app will throw if any are missing.
+### Data Flow
 
-## Architecture
+```bash
+Browser → Next.js API routes → FastAPI backend → Ollama/OpenAI
+                ↓
+           MongoDB (Mongoose)
+```
 
-**Breeze** is a Next.js 16 App Router chat application that wraps a self-hosted Ollama-compatible LLM backend. Key architectural decisions:
+Next.js API routes act as an authenticated passthrough to FastAPI — they add auth headers (`X-API-Key`) and handle CRUD for conversations/messages in MongoDB directly on the Nextjs App. Fastapi is a separate entity for Ollama Calls.
+The Params: ( `X-User-Id`, `X-Session-Id`) are for langfuse tracing
 
-### Request Flow
+### Message State Architecture
 
-1. Client submits a message via `useChatStream(conversationId?)` hook
-2. If no `conversationId`: `POST /api/conversations` creates one, cache is pre-populated, router navigates to `/chat/{id}`
-3. User message is saved to DB (`POST /api/conversations/{id}/messages`) and added to TanStack Query cache
-4. `POST /api/chat` streams NDJSON typed events back (`{"type":"text","content":"..."}`)
-5. Each event updates the TanStack Query cache live (`queryClient.setQueryData`)
-6. On stream complete, assistant message is saved to DB
+Messages live **exclusively in TanStack Query** cache under key `['conversations', id, 'messages']`. Zustand holds only `isAuthenticated`. Never put messages in Zustand.
 
-### Stream Event Protocol (NDJSON)
+- `staleTime: Infinity` prevents cache invalidation during active streams
+- `isStreaming: true` on `ChatMessageDTO` = client-only in-flight marker (never from DB)
+- `useChatStream` in [app/chat/hooks/useChatStream.ts](app/chat/hooks/useChatStream.ts) orchestrates: create conversation → optimistic cache update → stream → persist to DB
 
-`/api/chat` emits one JSON line per event. Defined in [lib/types/stream.ts](lib/types/stream.ts):
-- `{"type":"text","content":"..."}` — text chunk
-- `{"type":"reasoning","content":"..."}` — reasoning/thinking chunk
-- `{"type":"done"}` — stream finished
-- `{"type":"error","message":"..."}` — stream error
+### Streaming Protocol
 
-### Routing
+Backend emits NDJSON. Each line is a `StreamEvent` (see [lib/types/stream.ts](lib/types/stream.ts)):
 
-- `/chat` — empty state, starts new conversations (no conversationId)
-- `/chat/[id]` — shows a specific conversation; loads from TanStack Query cache (populated during stream) or fetches from DB on direct navigation
-- Invalid/unauthorized IDs → `toast.error` + redirect to `/chat`
+```ts
+{ type: 'text' | 'reasoning' | 'done' | 'error', content: string }
+```
 
-### Auth
+`/api/chat` (Next.js) is a pure proxy to FastAPI `/completion`. `useChatStream` parses the NDJSON via `AsyncGenerator`.
 
-- NextAuth v4 with credentials provider (email + password)
-- Passwords hashed with bcryptjs
-- JWT session strategy; `session.user.id` is injected from the token
-- Route protection is handled in [proxy.ts](proxy.ts) via Next.js middleware — `/chat/*` requires a valid JWT
-- Auth pages: `/login`, `/signup` (dynamic route `app/[auth]/page.tsx`)
+### Persistence Pattern
 
-### Data Layer
+- User message: saved via fire-and-forget `POST /api/conversations/:id/messages`
+- Assistant message: accumulated in TanStack cache during stream, saved to DB after `done` event
+- On stream complete: invalidates `['conversations']` to refresh sidebar
 
-- **MongoDB** via Mongoose, connected in [lib/db/mongodb.ts](lib/db/mongodb.ts) using a global cached connection to survive hot reloads
-- Models: `User`, `Conversation`, `ChatMessage` in [lib/models/](lib/models/)
-- `dbConnect()` is called in the root layout so the connection is ready for all server components
+### Authentication
 
-### State Management
+NextAuth 4 with Credentials provider (email/bcrypt). JWT session strategy. Server-side `getServerSession(authOptions)` gates all API routes. `lib/auth.ts` is the single source of auth config.
 
-- **TanStack Query cache** is the single source of truth for all message state. Key: `['conversations', id, 'messages']`. During streaming, `queryClient.setQueryData` pushes chunks live. `staleTime: Infinity` prevents background refetch from clobbering in-flight stream data.
-- **Zustand** store ([store/chat.ts](store/chat.ts)) persisted to `localStorage` — holds auth state only. Do NOT add message state here.
-- Race condition prevention: assistant messages carry `isStreaming: true` in the cache while streaming. The `/chat/[id]` page uses the cache-first data — no separate streaming flag needed.
+### Backend (FastAPI)
 
-### UI
+Located in `backend/`. Key endpoints:
 
-- [components/ui/](components/ui/) — shadcn/ui primitives
-- [components/ai-elements/](components/ai-elements/) — rich chat rendering components (code blocks, artifacts, reasoning, canvas, etc.)
-- [components/app-sidebar.tsx](components/app-sidebar.tsx) — sidebar with conversation list and user nav
-- Tailwind CSS v4 with `tw-animate-css` and `next-themes` for dark mode
-- Fonts: Manrope (sans) and Geist Mono (mono)
+| Endpoint           | Description                                       |
+| ------------------ | ------------------------------------------------- |
+| `POST /completion` | Stream LLM response (NDJSON), rate-limited 10/min |
+| `POST /summarize`  | Generate conversation title, rate-limited 20/min  |
 
-### Path Aliases
+Auth: `X-API-Key` header verified against env var. Langfuse integration for LLM observability. MCP + Tavily for web search tools.
 
-`@/` maps to the project root (configured in `tsconfig.json`).
+## Environment Variables
+
+**Frontend** (`.env.local`):
+
+```bash
+OLLAMA_API_URL=      # FastAPI backend URL
+OLLAMA_API_KEY=      # Shared secret for backend X-API-Key
+MONGO_URI=           # MongoDB Atlas connection string
+NEXTAUTH_SECRET=     # JWT secret
+NEXTAUTH_URL=        # App URL
+PLATFORM_PASSWORD=   # Demo account password
+```
+
+**Backend** (`backend/.env`):
+
+```bash
+OLLAMA_BASE_URL=     # Local Ollama endpoint
+OPENAI_API_KEY=      # For summarization
+LANGFUSE_API_KEY=    # LLM observability
+LANGFUSE_BASE_URL=
+TAVILY_API_KEY=      # Web search
+```
+
+## Key Files
+
+- [app/chat/hooks/useChatStream.ts](app/chat/hooks/useChatStream.ts) — core streaming + persistence
+- [app/api/chat/route.ts](app/api/chat/route.ts) — passthrough to FastAPI
+- [hooks/use-chat-messages.ts](hooks/use-chat-messages.ts) — TanStack Query message hook
+- [lib/auth.ts](lib/auth.ts) — NextAuth config + credential verification
+- [lib/db/mongodb.ts](lib/db/mongodb.ts) — pooled Mongoose connection
+- [lib/models/](lib/models/) — Mongoose schemas (User, Conversation, ChatMessage)
+- [lib/types/stream.ts](lib/types/stream.ts) — StreamEvent union type
+- [backend/app.py](backend/app.py) — FastAPI routes
+- [backend/chat.py](backend/chat.py) — LLM streaming logic
+
+## UI Stack
+
+shadcn/ui (Radix-based) + Tailwind CSS 4. Markdown rendered with `streamdown`. Code highlighted with `shiki`. Toasts via `sonner`. Animations via `motion`.
