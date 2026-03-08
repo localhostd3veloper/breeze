@@ -87,10 +87,11 @@ export function useRegenerateTitle() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      toast.loading('Regenerating title...');
+      const toastId = toast.loading('Regenerating title...');
       const res = await fetch(`/api/conversations/${id}/summarize`, {
         method: 'POST',
       });
+      toast.dismiss(toastId);
       if (!res.ok) throw new Error('Failed to regenerate title');
       const { title } = await res.json();
       return { id, title };
