@@ -1,11 +1,8 @@
 'use client';
 
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ConversationDTO } from '@/lib/types/conversation';
+import { toast } from 'sonner';
 
 const QUERY_KEY = ['conversations'] as const;
 
@@ -17,7 +14,9 @@ async function fetchConversations(): Promise<ConversationDTO[]> {
 
 async function patchConversation(
   id: string,
-  patch: Partial<Pick<ConversationDTO, 'isPinned' | 'isArchived'> & { isDeleted: boolean }>,
+  patch: Partial<
+    Pick<ConversationDTO, 'isPinned' | 'isArchived'> & { isDeleted: boolean }
+  >,
 ): Promise<ConversationDTO> {
   const res = await fetch(`/api/conversations/${id}`, {
     method: 'PATCH',
@@ -88,6 +87,7 @@ export function useRegenerateTitle() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      toast.loading('Regenerating title...');
       const res = await fetch(`/api/conversations/${id}/summarize`, {
         method: 'POST',
       });
@@ -99,6 +99,10 @@ export function useRegenerateTitle() {
       queryClient.setQueryData<ConversationDTO[]>(QUERY_KEY, (old = []) =>
         old.map((c) => (c.id === id ? { ...c, title } : c)),
       );
+      toast.success('Title regenerated');
+    },
+    onError: () => {
+      toast.error('Failed to regenerate title');
     },
   });
 }
