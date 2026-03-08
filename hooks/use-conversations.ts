@@ -132,3 +132,12 @@ export function usePinConversation() {
     },
   });
 }
+
+export function useGetConversationById(id: string) {
+  const { data: conversations, isLoading } = useConversations();
+
+  return {
+    conversation: conversations?.find((c) => c.id === id),
+    isLoading,
+  };
+}

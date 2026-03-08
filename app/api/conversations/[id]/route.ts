@@ -6,6 +6,39 @@ import dbConnect from '@/lib/db/mongodb';
 import Conversation from '@/lib/models/conversation';
 import type { ConversationDTO } from '@/lib/types/conversation';
 
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  await dbConnect();
+
+  const conversation = await Conversation.findById(id).lean();
+  if (!conversation) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  if (conversation.user.toString() !== session.user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const data: ConversationDTO = {
+    id: conversation._id.toString(),
+    title: conversation.title,
+    isPinned: conversation.isPinned,
+    isArchived: conversation.isArchived,
+    createdAt: (conversation.createdAt as Date).toISOString(),
+    updatedAt: (conversation.updatedAt as Date).toISOString(),
+  };
+
+  return NextResponse.json(data);
+}
+
 const patchSchema = z
   .object({
     isPinned: z.boolean().optional(),
