@@ -68,13 +68,9 @@ export function ChatConversationClient({
               The AI is currently catching some Zs... 😴
             </AlertTitle>
             <AlertDescription>
-              Our self-hosted LLM backend is currently unavailable. This usually
-              means the developer is asleep (and their PC is too) or we&apos;re
-              doing some maintenance. <br />
-              <strong>Good news:</strong> You can still read all your previous
-              glorious conversations! <br />
-              <strong>Bad news:</strong> You can&apos;t send any new ones right
-              now. Check back later!
+              The backend is down — probably maintenance or the dev is asleep.
+              You can browse past conversations, but new messages won&apos;t go
+              through. Check back later!
             </AlertDescription>
           </Alert>
         )}
