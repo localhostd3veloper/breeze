@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'motion/react';
 import ChatInput from '@/components/Input';
 import { ChatMessages } from '../components/chat-messages';
 import { useChatStream } from '../hooks/useChatStream';
@@ -50,13 +51,22 @@ export function ChatConversationClient({
 
   return (
     <>
-      <ChatMessages
-        messages={messages ?? []}
-        isLoading={isLoading}
-        onEditMessage={handleEditMessage}
-        onRegenerateMessage={handleRegenerateMessage}
-      />
-
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={conversationId}
+          className="flex flex-col flex-1 min-h-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, ease: 'easeOut' }}
+        >
+          <ChatMessages
+            messages={messages ?? []}
+            isLoading={isLoading}
+            onEditMessage={handleEditMessage}
+            onRegenerateMessage={handleRegenerateMessage}
+          />
+        </motion.div>
+      </AnimatePresence>
       <div className="mx-auto w-full max-w-3xl px-2 pb-4 md:px-4">
         {isChatAvailable === false && (
           <Alert
