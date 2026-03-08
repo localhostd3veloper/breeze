@@ -57,13 +57,6 @@ const models = [
   {
     chef: 'Qwen',
     chefSlug: 'ollama',
-    id: 'qooba/qwen3-coder-8b-instruct:q4_k_m',
-    name: 'Qwen3 Coder 8B',
-    providers: ['ollama'],
-  },
-  {
-    chef: 'Qwen',
-    chefSlug: 'ollama',
     id: 'hf.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF:Q4_K_M',
     name: 'Qwen2.5 Coder 3B',
     providers: ['ollama'],
