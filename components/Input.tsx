@@ -164,7 +164,12 @@ const PromptInputAttachmentsDisplay = () => {
 };
 
 interface ChatInputProps {
-  onSubmit?: (text: string, model: string, webSearch: boolean, images: string[]) => Promise<void>;
+  onSubmit?: (
+    text: string,
+    model: string,
+    webSearch: boolean,
+    images: string[],
+  ) => Promise<void>;
   isChatAvailable: boolean;
 }
 
@@ -192,7 +197,9 @@ const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
         setStatus('streaming');
         const images = message.files.map((f) => f.url);
         // return immediately so PromptInput clears the textarea now
-        onSubmit(text, model, webSearch, images).finally(() => setStatus('ready'));
+        onSubmit(text, model, webSearch, images).finally(() =>
+          setStatus('ready'),
+        );
       }
     },
     [onSubmit, model, webSearch],
@@ -201,7 +208,12 @@ const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
   return (
     <div className="size-ful hover:shadow-md transition-shadow duration-200">
       <PromptInputProvider>
-        <PromptInput accept="image/*" globalDrop multiple onSubmit={handleSubmit}>
+        <PromptInput
+          accept="image/*"
+          globalDrop
+          multiple
+          onSubmit={handleSubmit}
+        >
           <PromptInputAttachmentsDisplay />
           <PromptInputBody>
             <PromptInputTextarea

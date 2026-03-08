@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Satisfy&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Satisfy&display=swap');
 
 @import 'tailwindcss';
 @import 'tw-animate-css';
@@ -88,11 +88,11 @@
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
+  --background: oklch(16.842% 0.00002 271.152);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
+  --card: oklch(22.686% 0.00193 286.053);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
+  --popover: oklch(22.686% 0.00193 286.053);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.7 0.12 183);
   --primary-foreground: oklch(0.28 0.04 193);
@@ -111,7 +111,7 @@
   --chart-3: oklch(0.7 0.12 183);
   --chart-4: oklch(0.6 0.1 185);
   --chart-5: oklch(0.51 0.09 186);
-  --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar: oklch(19.616% 0.002 286.056);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.78 0.13 182);
   --sidebar-primary-foreground: oklch(0.28 0.04 193);
