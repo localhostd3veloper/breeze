@@ -158,7 +158,7 @@ const PromptInputAttachmentsDisplay = () => {
   }
 
   return (
-    <Attachments variant="inline">
+    <Attachments variant="grid">
       {attachments.files.map((attachment) => (
         <AttachmentItem
           attachment={attachment}
@@ -171,13 +171,14 @@ const PromptInputAttachmentsDisplay = () => {
 };
 
 interface ChatInputProps {
-  onSubmit?: (text: string, model: string) => Promise<void>;
+  onSubmit?: (text: string, model: string, webSearch: boolean, images: string[]) => Promise<void>;
   isChatAvailable: boolean;
 }
 
 const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
   const [model, setModel] = useState<string>(models[0].id);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+  const [webSearch, setWebSearch] = useState(false);
   const [status, setStatus] = useState<
     'submitted' | 'streaming' | 'ready' | 'error'
   >('ready');
@@ -196,17 +197,18 @@ const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
 
       if (onSubmit) {
         setStatus('streaming');
+        const images = message.files.map((f) => f.url);
         // return immediately so PromptInput clears the textarea now
-        onSubmit(text, model).finally(() => setStatus('ready'));
+        onSubmit(text, model, webSearch, images).finally(() => setStatus('ready'));
       }
     },
-    [onSubmit, model],
+    [onSubmit, model, webSearch],
   );
 
   return (
     <div className="size-ful hover:shadow-md transition-shadow duration-200">
       <PromptInputProvider>
-        <PromptInput globalDrop multiple onSubmit={handleSubmit}>
+        <PromptInput accept="image/*" globalDrop multiple onSubmit={handleSubmit}>
           <PromptInputAttachmentsDisplay />
           <PromptInputBody>
             <PromptInputTextarea
@@ -226,7 +228,13 @@ const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
                   <PromptInputActionAddAttachments />
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
-              <PromptInputButton>
+              <PromptInputButton
+                tooltip="Search the web"
+                className={
+                  webSearch ? 'bg-primary/10 text-accent-foreground' : ''
+                }
+                onClick={() => setWebSearch((v) => !v)}
+              >
                 <GlobeIcon size={16} />
                 <span>Search</span>
               </PromptInputButton>

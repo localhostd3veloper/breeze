@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import {
   Conversation,
   ConversationContent,
@@ -18,7 +18,8 @@ import {
   ReasoningTrigger,
 } from '@/components/ai-elements/reasoning';
 import { Shimmer } from '@/components/ai-elements/shimmer';
-import { Copy, CopyCheck, Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Copy, CopyCheck, Pencil, RefreshCw, X, CornerDownLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { emptyStateMessages } from '../utils/constants';
 import type { ChatMessageDTO } from '@/lib/types/conversation';
@@ -26,13 +27,55 @@ import type { ChatMessageDTO } from '@/lib/types/conversation';
 interface ChatMessagesProps {
   messages: ChatMessageDTO[];
   isLoading?: boolean;
+  onEditMessage?: (messageId: string, newText: string) => Promise<void>;
+  onRegenerateMessage?: (messageId: string) => Promise<void>;
 }
 
-export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
+export function ChatMessages({
+  messages,
+  isLoading,
+  onEditMessage,
+  onRegenerateMessage,
+}: ChatMessagesProps) {
   const [greeting] = useState(
     () =>
       emptyStateMessages[Math.floor(Math.random() * emptyStateMessages.length)],
   );
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleEditClick = (msg: ChatMessageDTO) => {
+    setEditingId(msg.id);
+    setEditText(msg.content);
+    setTimeout(() => {
+      const ta = textareaRef.current;
+      if (ta) {
+        ta.focus();
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+      }
+    }, 0);
+  };
+
+  const handleEditCancel = () => {
+    setEditingId(null);
+    setEditText('');
+  };
+
+  const handleEditSave = async () => {
+    if (!editingId || !onEditMessage || !editText.trim()) return;
+    setIsSubmittingEdit(true);
+    try {
+      await onEditMessage(editingId, editText.trim());
+      setEditingId(null);
+      setEditText('');
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
+  const isAnyStreaming = messages.some((m) => m.isStreaming);
 
   return (
     <Conversation className="flex-1">
@@ -48,27 +91,85 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
         ) : (
           messages.map((msg) => (
             <Fragment key={msg.id}>
-              <Message from={msg.role as 'user' | 'assistant'}>
-                <MessageContent>
-                  {msg.role === 'assistant' ? (
-                    msg.isStreaming && msg.content === '' && !msg.reasoning ? (
-                      <Shimmer>Thinking…</Shimmer>
+              {editingId === msg.id ? (
+                <div className="ml-auto flex w-full max-w-[95%] flex-col gap-2">
+                  <textarea
+                    ref={textareaRef}
+                    className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+                    rows={Math.max(3, editText.split('\n').length)}
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleEditSave();
+                      }
+                      if (e.key === 'Escape') handleEditCancel();
+                    }}
+                    disabled={isSubmittingEdit}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleEditCancel}
+                      disabled={isSubmittingEdit}
+                    >
+                      <X className="mr-1 size-3.5" />
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleEditSave}
+                      disabled={isSubmittingEdit || !editText.trim()}
+                    >
+                      <CornerDownLeft className="mr-1 size-3.5" />
+                      Send
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Message from={msg.role as 'user' | 'assistant'}>
+                  <MessageContent>
+                    {msg.role === 'assistant' ? (
+                      msg.isStreaming &&
+                      msg.content === '' &&
+                      !msg.reasoning ? (
+                        <Shimmer>Thinking…</Shimmer>
+                      ) : (
+                        <>
+                          {msg.reasoning && (
+                            <Reasoning isStreaming={msg.isStreaming}>
+                              <ReasoningTrigger />
+                              <ReasoningContent>
+                                {msg.reasoning}
+                              </ReasoningContent>
+                            </Reasoning>
+                          )}
+                          <MessageResponse>{msg.content}</MessageResponse>
+                        </>
+                      )
                     ) : (
                       <>
-                        {msg.reasoning && (
-                          <Reasoning isStreaming={msg.isStreaming}>
-                            <ReasoningTrigger />
-                            <ReasoningContent>{msg.reasoning}</ReasoningContent>
-                          </Reasoning>
+                        {msg.images && msg.images.length > 0 && (
+                          <div className="mb-2 flex flex-wrap gap-2">
+                            {msg.images.map((src, i) => (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                key={i}
+                                src={src}
+                                alt={`attachment ${i + 1}`}
+                                className="max-h-48 max-w-xs rounded-md object-contain"
+                              />
+                            ))}
+                          </div>
                         )}
-                        <MessageResponse>{msg.content}</MessageResponse>
+                        {msg.content}
                       </>
-                    )
-                  ) : (
-                    msg.content
-                  )}
-                </MessageContent>
-              </Message>
+                    )}
+                  </MessageContent>
+                </Message>
+              )}
 
               {msg.role === 'assistant' &&
                 !msg.isStreaming &&
@@ -85,9 +186,18 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
                     >
                       <Copy />
                     </MessageAction>
+                    {onRegenerateMessage && (
+                      <MessageAction
+                        tooltip="Regenerate"
+                        disabled={isAnyStreaming}
+                        onClick={() => onRegenerateMessage(msg.id)}
+                      >
+                        <RefreshCw />
+                      </MessageAction>
+                    )}
                   </MessageActions>
                 )}
-              {msg.role === 'user' && (
+              {msg.role === 'user' && editingId !== msg.id && (
                 <MessageActions className="justify-end">
                   <MessageAction
                     tooltip="Copy"
@@ -100,13 +210,10 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
                   >
                     <Copy />
                   </MessageAction>
-                  {/* Edit */}
                   <MessageAction
                     tooltip="Edit"
-                    disabled
-                    onClick={() => {
-                      //TODO: implement edit functionality
-                    }}
+                    disabled={isAnyStreaming || !onEditMessage}
+                    onClick={() => handleEditClick(msg)}
                   >
                     <Pencil />
                   </MessageAction>

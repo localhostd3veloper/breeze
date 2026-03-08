@@ -18,7 +18,7 @@ interface ChatConversationClientProps {
 
 export function ChatConversationClient({ conversationId }: ChatConversationClientProps) {
   const router = useRouter();
-  const { handleSubmit } = useChatStream(conversationId);
+  const { handleSubmit, handleEditMessage, handleRegenerateMessage } = useChatStream(conversationId);
 
   const { data: messages, isLoading, isError, error } = useChatMessages(conversationId);
 
@@ -42,7 +42,7 @@ export function ChatConversationClient({ conversationId }: ChatConversationClien
 
   return (
     <>
-      <ChatMessages messages={messages ?? []} isLoading={isLoading} />
+      <ChatMessages messages={messages ?? []} isLoading={isLoading} onEditMessage={handleEditMessage} onRegenerateMessage={handleRegenerateMessage} />
 
       <div className="mx-auto w-full max-w-3xl px-4 pb-4">
         {isChatAvailable === false && (
