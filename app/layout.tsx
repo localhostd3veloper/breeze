@@ -50,6 +50,7 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg',
     apple: '/favicon.svg',
   },
+  manifest: '/manifest.webmanifest',
   openGraph: {
     type: 'website',
     url: APP_URL,
@@ -74,6 +75,7 @@ export const metadata: Metadata = {
 };
 
 import Providers from '@/components/providers';
+import ServiceWorkerRegistration from '@/components/service-worker-registration';
 
 import dbConnect from '@/lib/db/mongodb';
 
@@ -89,6 +91,7 @@ export default async function RootLayout({
         className={`${manrope.variable} ${geistMono.variable} antialiased font-sans`}
       >
         <Analytics />
+        <ServiceWorkerRegistration />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

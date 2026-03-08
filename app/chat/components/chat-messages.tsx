@@ -1,10 +1,11 @@
-import { Fragment, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   Conversation,
   ConversationContent,
   ConversationEmptyState,
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation';
+import { useStickToBottomContext } from 'use-stick-to-bottom';
 import {
   Message,
   MessageAction,
@@ -23,6 +24,20 @@ import { Copy, CopyCheck, Pencil, RefreshCw, X, CornerDownLeft } from 'lucide-re
 import { toast } from 'sonner';
 import { emptyStateMessages } from '../utils/constants';
 import type { ChatMessageDTO } from '@/lib/types/conversation';
+
+function ScrollToBottomOnStream({ isAnyStreaming }: { isAnyStreaming: boolean }) {
+  const { scrollToBottom } = useStickToBottomContext();
+  const wasStreaming = useRef(false);
+
+  useEffect(() => {
+    if (isAnyStreaming && !wasStreaming.current) {
+      scrollToBottom();
+    }
+    wasStreaming.current = isAnyStreaming;
+  }, [isAnyStreaming, scrollToBottom]);
+
+  return null;
+}
 
 interface ChatMessagesProps {
   messages: ChatMessageDTO[];
@@ -79,7 +94,8 @@ export function ChatMessages({
 
   return (
     <Conversation className="flex-1">
-      <ConversationContent className="mx-auto w-full max-w-3xl h-full gap-2 px-4 py-6">
+      <ConversationContent className="mx-auto w-full max-w-3xl min-h-full gap-2 px-4 py-6">
+        <ScrollToBottomOnStream isAnyStreaming={isAnyStreaming} />
         {messages.length === 0 && !isLoading ? (
           <div className="flex flex-1 items-center justify-center">
             <ConversationEmptyState
