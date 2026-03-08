@@ -241,7 +241,7 @@ const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
                 onClick={() => setWebSearch((v) => !v)}
               >
                 <GlobeIcon size={16} />
-                <span>Search</span>
+                <span className="hidden md:block">Search</span>
               </PromptInputButton>
               <ModelSelector
                 onOpenChange={setModelSelectorOpen}

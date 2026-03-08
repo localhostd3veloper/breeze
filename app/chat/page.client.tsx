@@ -8,13 +8,12 @@ import { Coffee } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getChatHealth } from './utils/health';
 
-export function ChatClient({ initialHealth }: { initialHealth: boolean }) {
+export function ChatClient() {
   const { handleSubmit } = useChatStream();
 
   const { data: isChatAvailable } = useQuery({
     queryKey: ['chatHealth'],
     queryFn: getChatHealth,
-    initialData: initialHealth,
     staleTime: 10_000,
     refetchInterval: 10_000,
   });
@@ -25,7 +24,7 @@ export function ChatClient({ initialHealth }: { initialHealth: boolean }) {
       <ChatMessages messages={[]} />
 
       <div className="mx-auto w-full max-w-3xl px-4 pb-4">
-        {!isChatAvailable && (
+        {isChatAvailable === false && (
           <Alert
             variant="destructive"
             className="mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300 border-orange-500/50 bg-orange-500/10 text-orange-600 dark:border-orange-500/30 dark:text-orange-400"

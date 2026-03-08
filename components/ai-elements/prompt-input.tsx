@@ -986,7 +986,7 @@ export const PromptInputTools = ({
   ...props
 }: PromptInputToolsProps) => (
   <div
-    className={cn('flex min-w-0 items-center gap-1', className)}
+    className={cn('flex min-w-0 items-center md:gap-1', className)}
     {...props}
   />
 );
