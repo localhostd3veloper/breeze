@@ -1,4 +1,5 @@
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Any, Iterator
 
@@ -7,6 +8,14 @@ from langfuse import propagate_attributes
 from config import logger, openai_client
 from models import HistoryMessage
 from tools import TOOLS, dispatch_tool
+
+
+def _safe_json(s: str | None) -> dict[str, Any]:
+    try:
+        return json.loads(s or "{}")
+    except json.JSONDecodeError:
+        logger.warning("Tool arguments invalid JSON: %r", s)
+        return {}
 
 
 def _emit(event: dict) -> str:
@@ -59,74 +68,6 @@ class _ReasoningParser:
         return text_out, reasoning_out
 
 
-# chars; below this, skip thinking unless it looks complex
-_SIMPLE_MESSAGE_THRESHOLD = 50
-
-
-_SIMPLE_GREETINGS = {
-    "hi",
-    "hello",
-    "hey",
-    "howdy",
-    "hiya",
-    "how are you",
-    "how are you?",
-    "how are you doing",
-    "how's it going",
-    "what's up",
-    "sup",
-    "yo",
-    "good morning",
-    "good afternoon",
-    "good evening",
-    "good night",
-    "bye",
-    "goodbye",
-    "see you",
-    "thanks",
-    "thank you",
-    "ok",
-    "okay",
-    "lol",
-    "haha",
-    "nice",
-    "cool",
-    "great",
-    "awesome",
-}
-
-_COMPLEX_SIGNALS = (
-    "why",
-    "how to",
-    "how do",
-    "how does",
-    "how can",
-    "how would",
-    "explain",
-    "what is",
-    "what are",
-    "difference",
-    "compare",
-    "calculate",
-    "solve",
-    "code",
-    "write",
-    "debug",
-    "translate",
-)
-
-
-def _needs_thinking(message: str) -> bool:
-    """Return False for short conversational messages that don't benefit from thinking."""
-    msg = message.strip()
-    lower = msg.lower().rstrip("?!.")
-    if lower in _SIMPLE_GREETINGS:
-        return False
-    if len(msg) > _SIMPLE_MESSAGE_THRESHOLD:
-        return True
-    return any(signal in lower for signal in _COMPLEX_SIGNALS)
-
-
 def _system_prompt() -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     return (
@@ -169,39 +110,42 @@ def stream_response(
     history: list[HistoryMessage] | None = None,
     web_search: bool = False,
     images: list[str] | None = None,
+    thinking: bool = False,
     user_id: str | None = None,
     session_id: str | None = None,
 ) -> Iterator[str]:
     try:
-        messages = _build_messages(message, history, images)
-        enable_thinking = _needs_thinking(message)
+        messages = list(_build_messages(message, history, images))
         create_kwargs: dict[str, Any] = {
             "metadata": {"model": model},
             "model": model,
             "messages": messages,
             "stream": True,
-            "max_tokens": _needs_thinking(message) and 4086 or 2048,
+            "max_tokens": 4096 if thinking else 2048,
             "temperature": 0.3,
             "user": user_id,
-            "verbosity": "low",
         }
-        if enable_thinking:
+        if thinking:
             create_kwargs["extra_body"] = {
                 "enable_thinking": True,
                 "thinking_budget": 1024,
+                "verbosity": "low",
             }
+        else:
+            create_kwargs["extra_body"] = {"verbosity": "low"}
 
         if web_search:
             create_kwargs["tools"] = TOOLS  # type: ignore[assignment]
         with propagate_attributes(
             user_id=user_id, session_id=session_id, trace_name="chat.stream_responses"
         ):
-            stream = openai_client.chat.completions.create(**create_kwargs)  # type: ignore[call-overload]
+            stream = openai_client.with_options(timeout=60).chat.completions.create(**create_kwargs)  # type: ignore[call-overload]
 
         # Stream content directly, accumulating any tool calls in parallel.
         tool_calls_acc: dict[int, dict[str, Any]] = {}
-        assistant_content = ""
+        assistant_chunks: list[str] = []
         parser = _ReasoningParser()
+        native_reasoning = False  # True once we see delta.reasoning; disables _ReasoningParser
 
         for chunk in stream:
             delta = chunk.choices[0].delta
@@ -211,37 +155,43 @@ def stream_response(
                     entry = tool_calls_acc.setdefault(
                         tc.index,
                         {
-                            "id": "",
-                            "type": "function",
+                            "id": tc.id or "",
+                            "type": tc.type or "function",
                             "function": {"name": "", "arguments": ""},
                         },
                     )
                     if tc.id:
                         entry["id"] = tc.id
-                    if tc.function.name:
-                        entry["function"]["name"] += tc.function.name
-                    if tc.function.arguments:
-                        entry["function"]["arguments"] += tc.function.arguments
+                    if tc.function:
+                        if tc.function.name:
+                            entry["function"]["name"] = tc.function.name
+                        if tc.function.arguments:
+                            entry["function"]["arguments"] += tc.function.arguments
 
             # Qwen thinking models expose reasoning via delta.reasoning.
             thinking_chunk = getattr(delta, "reasoning", None)
             if thinking_chunk and not tool_calls_acc:
+                native_reasoning = True
                 yield _emit({"type": "reasoning", "content": thinking_chunk})
 
             if delta.content:
-                assistant_content += delta.content
+                assistant_chunks.append(delta.content)
                 if not tool_calls_acc:
-                    text_out, reasoning_out = parser.feed(delta.content)
-                    if reasoning_out:
-                        yield _emit({"type": "reasoning", "content": reasoning_out})
-                    if text_out:
-                        yield _emit({"type": "text", "content": text_out})
+                    if native_reasoning:
+                        yield _emit({"type": "text", "content": delta.content})
+                    else:
+                        text_out, reasoning_out = parser.feed(delta.content)
+                        if reasoning_out:
+                            yield _emit({"type": "reasoning", "content": reasoning_out})
+                        if text_out:
+                            yield _emit({"type": "text", "content": text_out})
 
-        text_out, reasoning_out = parser.flush()
-        if reasoning_out:
-            yield _emit({"type": "reasoning", "content": reasoning_out})
-        if text_out:
-            yield _emit({"type": "text", "content": text_out})
+        if not native_reasoning:
+            text_out, reasoning_out = parser.flush()
+            if reasoning_out:
+                yield _emit({"type": "reasoning", "content": reasoning_out})
+            if text_out:
+                yield _emit({"type": "text", "content": text_out})
 
         if not tool_calls_acc or not web_search:
             yield _emit({"type": "done"})
@@ -252,46 +202,60 @@ def stream_response(
         messages.append(
             {
                 "role": "assistant",
-                "content": assistant_content or None,
+                "content": "".join(assistant_chunks) or None,
                 "tool_calls": tool_calls_list,
             }
         )
 
+        with ThreadPoolExecutor() as pool:
+            futures = {
+                pool.submit(dispatch_tool, tc["function"]["name"], _safe_json(tc["function"]["arguments"])): tc
+                for tc in tool_calls_list
+            }
+            tool_results: dict[str, str] = {}
+            for f in as_completed(futures):
+                tc = futures[f]
+                tool_results[tc["id"]] = f.result()
+
         for tc in tool_calls_list:
-            args = json.loads(tc["function"]["arguments"])
-            result = dispatch_tool(tc["function"]["name"], args)
             messages.append(
-                {"role": "tool", "tool_call_id": tc["id"], "content": result}
+                {"role": "tool", "tool_call_id": tc["id"], "content": tool_results[tc["id"]]}
             )
 
         with propagate_attributes(
             user_id=user_id, session_id=session_id, trace_name="tools.stream_responses"
         ):
-            final_stream = openai_client.chat.completions.create(  # type: ignore[call-overload, arg-type]
+            final_stream = openai_client.with_options(timeout=60).chat.completions.create(  # type: ignore[call-overload, arg-type]
                 metadata={"model": model},
                 model=model,
                 messages=messages,  # type: ignore[arg-type]
                 stream=True,
             )
         final_parser = _ReasoningParser()
+        final_native_reasoning = False
         for chunk in final_stream:
             final_delta = chunk.choices[0].delta
             thinking_chunk = getattr(final_delta, "reasoning", None)
             if thinking_chunk:
+                final_native_reasoning = True
                 yield _emit({"type": "reasoning", "content": thinking_chunk})
             content = final_delta.content or ""
             if content:
-                text_out, reasoning_out = final_parser.feed(content)
-                if reasoning_out:
-                    yield _emit({"type": "reasoning", "content": reasoning_out})
-                if text_out:
-                    yield _emit({"type": "text", "content": text_out})
+                if final_native_reasoning:
+                    yield _emit({"type": "text", "content": content})
+                else:
+                    text_out, reasoning_out = final_parser.feed(content)
+                    if reasoning_out:
+                        yield _emit({"type": "reasoning", "content": reasoning_out})
+                    if text_out:
+                        yield _emit({"type": "text", "content": text_out})
 
-        text_out, reasoning_out = final_parser.flush()
-        if reasoning_out:
-            yield _emit({"type": "reasoning", "content": reasoning_out})
-        if text_out:
-            yield _emit({"type": "text", "content": text_out})
+        if not final_native_reasoning:
+            text_out, reasoning_out = final_parser.flush()
+            if reasoning_out:
+                yield _emit({"type": "reasoning", "content": reasoning_out})
+            if text_out:
+                yield _emit({"type": "text", "content": text_out})
 
         yield _emit({"type": "done"})
 

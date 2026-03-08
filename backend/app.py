@@ -8,6 +8,7 @@ from slowapi.util import get_remote_address
 from chat import stream_response
 from config import API_KEY, openai_client
 from models import ChatRequest, ChatResponse, SummarizeRequest
+from models_config import MODELS, select_model
 
 # --- Rate limiting ---
 limiter = Limiter(key_func=get_remote_address)
@@ -35,22 +36,28 @@ def root():
 
 @app.post("/completion", response_model=ChatResponse)
 @limiter.limit("10/minute")
-def completion(request: Request, body: ChatRequest, _: str = Security(verify_api_key)):
+async def completion(request: Request, body: ChatRequest, _: str = Security(verify_api_key)):
     try:
         user_id = request.headers.get("X-User-Id")
         session_id = request.headers.get("X-Session-Id")
-        return StreamingResponse(
-            stream_response(
-                body.model.value,
+        model = select_model(body.thinking, body.web_search, bool(body.images))
+
+        async def _stream():
+            for event in stream_response(
+                model,
                 body.message,
                 body.history,
                 body.web_search,
                 body.images,
+                thinking=body.thinking,
                 user_id=user_id,
                 session_id=session_id,
-            ),
-            media_type="application/x-ndjson",
-        )
+            ):
+                if await request.is_disconnected():
+                    break
+                yield event
+
+        return StreamingResponse(_stream(), media_type="application/x-ndjson")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -80,7 +87,7 @@ def summarize(
             }
         ]
         resp = openai_client.chat.completions.create(
-            model=body.model.value,
+            model=MODELS["summarize"],
             messages=messages,  # type: ignore[arg-type]
         )
         return {"title": (resp.choices[0].message.content or "").strip()}

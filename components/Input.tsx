@@ -9,19 +9,6 @@ import {
   Attachments,
 } from '@/components/ai-elements/attachments';
 import {
-  ModelSelector,
-  ModelSelectorContent,
-  ModelSelectorEmpty,
-  ModelSelectorGroup,
-  ModelSelectorInput,
-  ModelSelectorItem,
-  ModelSelectorList,
-  ModelSelectorLogo,
-  ModelSelectorLogoGroup,
-  ModelSelectorName,
-  ModelSelectorTrigger,
-} from '@/components/ai-elements/model-selector';
-import {
   PromptInput,
   PromptInputActionAddAttachments,
   PromptInputActionMenu,
@@ -36,53 +23,14 @@ import {
   PromptInputTools,
   usePromptInputAttachments,
 } from '@/components/ai-elements/prompt-input';
-import { CheckIcon, GlobeIcon } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { GlobeIcon, SlidersHorizontalIcon, SparklesIcon } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
-
-const models = [
-  {
-    chef: 'Qwen',
-    chefSlug: 'ollama',
-    id: 'qwen3.5:9b',
-    name: 'Qwen3.5 9B (Reasoning)',
-    providers: ['ollama', 'huggingface'],
-  },
-  {
-    chef: 'Qwen',
-    chefSlug: 'ollama',
-    id: 'qooba/qwen3-coder-30b-a3b-instruct:q3_k_m',
-    name: 'Qwen3 Coder 30B',
-    providers: ['ollama'],
-  },
-  {
-    chef: 'Qwen',
-    chefSlug: 'ollama',
-    id: 'hf.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF:Q4_K_M',
-    name: 'Qwen2.5 Coder 3B',
-    providers: ['ollama'],
-  },
-  {
-    chef: 'Meta',
-    chefSlug: 'ollama',
-    id: 'llama3',
-    name: 'Llama 3',
-    providers: ['ollama'],
-  },
-  {
-    chef: 'Mistral',
-    chefSlug: 'ollama',
-    id: 'mistral',
-    name: 'Mistral',
-    providers: ['ollama'],
-  },
-  {
-    chef: 'Meta',
-    chefSlug: 'ollama',
-    id: 'codellama',
-    name: 'Code Llama',
-    providers: ['ollama'],
-  },
-];
 
 interface AttachmentItemProps {
   attachment: {
@@ -109,34 +57,6 @@ const AttachmentItem = memo(({ attachment, onRemove }: AttachmentItemProps) => {
 });
 
 AttachmentItem.displayName = 'AttachmentItem';
-
-interface ModelItemProps {
-  m: (typeof models)[0];
-  selectedModel: string;
-  onSelect: (id: string) => void;
-}
-
-const ModelItem = memo(({ m, selectedModel, onSelect }: ModelItemProps) => {
-  const handleSelect = useCallback(() => onSelect(m.id), [onSelect, m.id]);
-  return (
-    <ModelSelectorItem key={m.id} onSelect={handleSelect} value={m.id}>
-      <ModelSelectorLogo provider={m.chefSlug} />
-      <ModelSelectorName>{m.name}</ModelSelectorName>
-      <ModelSelectorLogoGroup>
-        {m.providers.map((provider) => (
-          <ModelSelectorLogo key={provider} provider={provider} />
-        ))}
-      </ModelSelectorLogoGroup>
-      {selectedModel === m.id ? (
-        <CheckIcon className="ml-auto size-4" />
-      ) : (
-        <div className="ml-auto size-4" />
-      )}
-    </ModelSelectorItem>
-  );
-});
-
-ModelItem.displayName = 'ModelItem';
 
 const PromptInputAttachmentsDisplay = () => {
   const attachments = usePromptInputAttachments();
@@ -166,27 +86,20 @@ const PromptInputAttachmentsDisplay = () => {
 interface ChatInputProps {
   onSubmit?: (
     text: string,
-    model: string,
     webSearch: boolean,
+    thinking: boolean,
     images: string[],
   ) => Promise<void>;
   isChatAvailable: boolean;
 }
 
 const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
-  const [model, setModel] = useState<string>(models[0].id);
-  const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const [webSearch, setWebSearch] = useState(false);
+  const [thinking, setThinking] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [status, setStatus] = useState<
     'submitted' | 'streaming' | 'ready' | 'error'
   >('ready');
-
-  const selectedModelData = models.find((m) => m.id === model);
-
-  const handleModelSelect = useCallback((id: string) => {
-    setModel(id);
-    setModelSelectorOpen(false);
-  }, []);
 
   const handleSubmit = useCallback(
     async (message: PromptInputMessage) => {
@@ -197,12 +110,12 @@ const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
         setStatus('streaming');
         const images = message.files.map((f) => f.url);
         // return immediately so PromptInput clears the textarea now
-        onSubmit(text, model, webSearch, images).finally(() =>
+        onSubmit(text, webSearch, thinking, images).finally(() =>
           setStatus('ready'),
         );
       }
     },
-    [onSubmit, model, webSearch],
+    [onSubmit, webSearch, thinking],
   );
 
   return (
@@ -233,55 +146,46 @@ const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
                   <PromptInputActionAddAttachments />
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
-              <PromptInputButton
-                tooltip="Search the web"
-                className={
-                  webSearch ? 'bg-primary/10 text-accent-foreground' : ''
-                }
-                onClick={() => setWebSearch((v) => !v)}
-              >
-                <GlobeIcon size={16} />
-                <span className="hidden md:block">Search</span>
-              </PromptInputButton>
-              <ModelSelector
-                onOpenChange={setModelSelectorOpen}
-                open={modelSelectorOpen}
-              >
-                <ModelSelectorTrigger asChild>
-                  <PromptInputButton>
-                    {selectedModelData?.chefSlug && (
-                      <ModelSelectorLogo
-                        provider={selectedModelData.chefSlug}
-                      />
-                    )}
-                    {selectedModelData?.name && (
-                      <ModelSelectorName>
-                        {selectedModelData.name}
-                      </ModelSelectorName>
-                    )}
+              <Popover onOpenChange={setSettingsOpen} open={settingsOpen}>
+                <PopoverTrigger asChild>
+                  <PromptInputButton
+                    tooltip="Chat settings"
+                    className={
+                      webSearch || thinking
+                        ? 'bg-primary/10 text-accent-foreground'
+                        : ''
+                    }
+                  >
+                    <SlidersHorizontalIcon size={16} />
                   </PromptInputButton>
-                </ModelSelectorTrigger>
-                <ModelSelectorContent>
-                  <ModelSelectorInput placeholder="Search models..." />
-                  <ModelSelectorList>
-                    <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
-                    {['Qwen', 'Meta', 'Mistral'].map((chef) => (
-                      <ModelSelectorGroup heading={chef} key={chef}>
-                        {models
-                          .filter((m) => m.chef === chef)
-                          .map((m) => (
-                            <ModelItem
-                              key={m.id}
-                              m={m}
-                              onSelect={handleModelSelect}
-                              selectedModel={model}
-                            />
-                          ))}
-                      </ModelSelectorGroup>
-                    ))}
-                  </ModelSelectorList>
-                </ModelSelectorContent>
-              </ModelSelector>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="start"
+                  className="w-52 p-3 space-y-3"
+                  side="top"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <SparklesIcon size={14} />
+                      <span>Thinking</span>
+                    </div>
+                    <Switch
+                      checked={thinking}
+                      onCheckedChange={setThinking}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <GlobeIcon size={14} />
+                      <span>Web Search</span>
+                    </div>
+                    <Switch
+                      checked={webSearch}
+                      onCheckedChange={setWebSearch}
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
             </PromptInputTools>
             <PromptInputSubmit status={status} />
           </PromptInputFooter>

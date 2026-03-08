@@ -90,11 +90,12 @@ PLATFORM_PASSWORD=   # Demo account password
 **Backend** (`backend/.env`):
 
 ```bash
-OLLAMA_BASE_URL=     # Local Ollama endpoint
-OPENAI_API_KEY=      # For summarization
-LANGFUSE_API_KEY=    # LLM observability
+API_KEY= # FastAPI X-API-Key
+TAVILY_API_KEY= # Tavily API key web search
+
+LANGFUSE_SECRET_KEY=
+LANGFUSE_PUBLIC_KEY=
 LANGFUSE_BASE_URL=
-TAVILY_API_KEY=      # Web search
 ```
 
 ## Key Files

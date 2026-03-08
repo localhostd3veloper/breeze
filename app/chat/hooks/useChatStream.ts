@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -72,7 +72,6 @@ export function useChatStream(conversationId?: string) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const lastModelRef = useRef('qwen3.5:9b');
 
   /**
    * Core: adds an optimistic assistant message, streams the LLM response,
@@ -82,8 +81,8 @@ export function useChatStream(conversationId?: string) {
     async (
       convId: string,
       userMsg: UserMessageRef,
-      model: string,
       webSearch: boolean,
+      thinking: boolean,
     ): Promise<void> => {
       const now = new Date().toISOString();
       const assistantMsgId = crypto.randomUUID();
@@ -109,7 +108,7 @@ export function useChatStream(conversationId?: string) {
         },
         body: JSON.stringify({
           message: userMsg.content,
-          model,
+          thinking,
           history,
           web_search: webSearch,
           ...(images.length && {
@@ -177,8 +176,7 @@ export function useChatStream(conversationId?: string) {
   );
 
   const handleSubmit = useCallback(
-    async (text: string, model: string, webSearch = false, images: string[] = []): Promise<void> => {
-      lastModelRef.current = model;
+    async (text: string, webSearch = false, thinking = false, images: string[] = []): Promise<void> => {
       let convId = conversationId;
       const isNewConversation = !convId;
 
@@ -213,13 +211,13 @@ export function useChatStream(conversationId?: string) {
         body: JSON.stringify({ role: 'user', content: text, ...(images.length && { images }) }),
       });
 
-      await streamAssistant(convId, { id: userMsgId, content: text, images }, model, webSearch);
+      await streamAssistant(convId, { id: userMsgId, content: text, images }, webSearch, thinking);
 
       if (isNewConversation) {
         fetch(`/api/conversations/${convId}/summarize`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model }),
+          body: JSON.stringify({}),
         }).then((res) => {
           if (res.ok) queryClient.invalidateQueries({ queryKey: ['conversations'] });
         });
@@ -261,7 +259,7 @@ export function useChatStream(conversationId?: string) {
         body: JSON.stringify({ role: 'user', content: newText }),
       });
 
-      await streamAssistant(convId, { id: userMsgId, content: newText }, lastModelRef.current, false);
+      await streamAssistant(convId, { id: userMsgId, content: newText }, false, false);
     },
     [conversationId, queryClient, streamAssistant],
   );
@@ -289,7 +287,7 @@ export function useChatStream(conversationId?: string) {
       await streamAssistant(
         convId,
         { id: precedingUserMsg.id, content: precedingUserMsg.content, images: precedingUserMsg.images },
-        lastModelRef.current,
+        false,
         false,
       );
     },
