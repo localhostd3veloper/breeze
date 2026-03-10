@@ -6,7 +6,7 @@
 
 MODELS: dict[str, str] = {
     "default": "phi4-mini:3.8b",
-    "vision": "llava:7b",
+    "vision": "gemma3:12b",
     "thinking": "qwen3:8b",
     "web_search": "qwen2.5:7b",
     "summarize": "phi4-mini:3.8b",

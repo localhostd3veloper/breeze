@@ -13,7 +13,7 @@ import { useCtrlShortcut } from '@/hooks/use-ctrl-shortcuts';
 import { useRouter } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Kbd } from './ui/kbd';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Command,
   CommandDialog,
@@ -24,12 +24,52 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { useConversations } from '@/hooks/use-conversations';
+import { useSearch } from '@/hooks/use-search';
+
+type Segment = { text: string; highlighted: boolean };
+
+function segmentText(text: string, query: string): Segment[] {
+  const terms = query
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (!terms.length) return [{ text, highlighted: false }];
+  const pattern = new RegExp(`(${terms.join('|')})`, 'gi');
+  return text.split(pattern).map((part, i) => ({ text: part, highlighted: i % 2 === 1 }));
+}
+
+function HighlightText({ text, query }: { text: string; query: string }) {
+  return (
+    <>
+      {segmentText(text, query).map((seg, i) =>
+        seg.highlighted ? (
+          <mark key={i} className="rounded-[2px] bg-yellow-300/60 text-foreground dark:bg-yellow-500/40">
+            {seg.text}
+          </mark>
+        ) : (
+          <span key={i}>{seg.text}</span>
+        ),
+      )}
+    </>
+  );
+}
 
 export function NavMain() {
   const router = useRouter();
   const { open } = useSidebar();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
   const { data: conversations = [] } = useConversations();
+  const { data: searchResults, isFetching } = useSearch(debouncedQuery);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
 
   useCtrlShortcut(
     'o',
@@ -40,6 +80,15 @@ export function NavMain() {
   );
 
   useCtrlShortcut('k', () => setSearchOpen(true));
+
+  const navigate = (id: string) => {
+    router.push(`/chat/${id}`);
+    setSearchOpen(false);
+  };
+
+  const hasResults =
+    (searchResults?.conversations.length ?? 0) > 0 ||
+    (searchResults?.messages.length ?? 0) > 0;
 
   return (
     <>
@@ -103,28 +152,86 @@ export function NavMain() {
 
       <CommandDialog
         open={searchOpen}
-        onOpenChange={setSearchOpen}
+        onOpenChange={(open) => {
+          setSearchOpen(open);
+          if (!open) {
+            setQuery('');
+            setDebouncedQuery('');
+          }
+        }}
         title="Search conversations"
-        description="Search your conversations"
+        description="Search your conversations and messages"
       >
-        <Command>
-          <CommandInput placeholder="Search conversations..." />
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Search conversations and messages..."
+            value={query}
+            onValueChange={setQuery}
+          />
           <CommandList>
-            <CommandEmpty>No conversations found.</CommandEmpty>
-            <CommandGroup heading="Conversations">
-              {conversations.map((item) => (
-                <CommandItem
-                  key={item.id}
-                  value={item.title}
-                  onSelect={() => {
-                    router.push(`/chat/${item.id}`);
-                    setSearchOpen(false);
-                  }}
-                >
-                  {item.title}
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {/* Empty query: show all conversations */}
+            {!debouncedQuery && (
+              <>
+                <CommandEmpty>No conversations found.</CommandEmpty>
+                <CommandGroup heading="Conversations">
+                  {conversations.map((item) => (
+                    <CommandItem
+                      key={item.id}
+                      value={item.id}
+                      onSelect={() => navigate(item.id)}
+                    >
+                      {item.title}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            )}
+
+            {/* Active query: show search results */}
+            {debouncedQuery && (
+              <>
+                {isFetching && (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    Searching...
+                  </p>
+                )}
+                {!isFetching && !hasResults && (
+                  <CommandEmpty>No results found.</CommandEmpty>
+                )}
+                {!isFetching && (searchResults?.conversations.length ?? 0) > 0 && (
+                  <CommandGroup heading="Conversations">
+                    {searchResults!.conversations.map((item) => (
+                      <CommandItem
+                        key={item.id}
+                        value={item.id}
+                        onSelect={() => navigate(item.id)}
+                      >
+                        <HighlightText text={item.title} query={debouncedQuery} />
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+                {!isFetching && (searchResults?.messages.length ?? 0) > 0 && (
+                  <CommandGroup heading="Messages">
+                    {searchResults!.messages.map((msg) => (
+                      <CommandItem
+                        key={msg.messageId}
+                        value={msg.messageId}
+                        onSelect={() => navigate(msg.conversationId)}
+                        className="flex flex-col items-start gap-0.5"
+                      >
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {msg.conversationTitle}
+                        </span>
+                        <span className="line-clamp-1 text-sm">
+                          <HighlightText text={msg.snippet} query={debouncedQuery} />
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+              </>
+            )}
           </CommandList>
         </Command>
       </CommandDialog>
