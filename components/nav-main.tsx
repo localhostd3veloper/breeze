@@ -58,7 +58,7 @@ function HighlightText({ text, query }: { text: string; query: string }) {
 
 export function NavMain() {
   const router = useRouter();
-  const { open } = useSidebar();
+  const { open, setOpenMobile } = useSidebar();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -82,9 +82,12 @@ export function NavMain() {
 
   useCtrlShortcut('k', () => setSearchOpen(true));
 
+  const closeMobile = () => setOpenMobile(false);
+
   const navigate = (id: string) => {
     router.push(`/chat/${id}`);
     setSearchOpen(false);
+    closeMobile();
   };
 
   const hasResults =
@@ -99,7 +102,7 @@ export function NavMain() {
           <SidebarMenuItem>
             <Tooltip>
               <TooltipTrigger asChild>
-                <SidebarMenuButton onClick={() => router.push('/chat')}>
+                <SidebarMenuButton onClick={() => { router.push('/chat'); closeMobile(); }}>
                   <PlusSquare />
                   <span>New Chat</span>
                   {open && (
