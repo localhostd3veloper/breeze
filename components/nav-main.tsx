@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/command';
 import { useConversations } from '@/hooks/use-conversations';
 import { useSearch } from '@/hooks/use-search';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type Segment = { text: string; highlighted: boolean };
 
@@ -191,9 +192,14 @@ export function NavMain() {
             {debouncedQuery && (
               <>
                 {isFetching && (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    Searching...
-                  </p>
+                  <div className="space-y-1 p-1">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="flex flex-col gap-1.5 rounded-md px-2.5 py-2">
+                        <Skeleton className="h-3 w-1/3" />
+                        <Skeleton className="h-3 w-full" />
+                      </div>
+                    ))}
+                  </div>
                 )}
                 {!isFetching && !hasResults && (
                   <CommandEmpty>No results found.</CommandEmpty>

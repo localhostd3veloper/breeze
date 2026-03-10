@@ -180,7 +180,7 @@ export function ChatMessages({
                             ))}
                           </div>
                         )}
-                        {msg.content}
+                        <MessageResponse mode="static">{msg.content}</MessageResponse>
                       </>
                     )}
                   </MessageContent>
