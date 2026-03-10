@@ -23,7 +23,7 @@ export function ChatClient() {
       {/* Empty state — no messages until user starts a conversation */}
       <ChatMessages messages={[]} />
 
-      <div className="mx-auto w-full max-w-3xl px-4 pb-4">
+      <div className="mx-auto w-full max-w-3xl px-4 pb-2">
         {isChatAvailable === false && (
           <Alert
             variant="destructive"
@@ -40,7 +40,10 @@ export function ChatClient() {
             </AlertDescription>
           </Alert>
         )}
-        <ChatInput onSubmit={handleSubmit} isChatAvailable={!!isChatAvailable} />
+        <ChatInput
+          onSubmit={handleSubmit}
+          isChatAvailable={!!isChatAvailable}
+        />
       </div>
     </>
   );

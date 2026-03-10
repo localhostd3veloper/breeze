@@ -67,7 +67,7 @@ export function ChatConversationClient({
           />
         </motion.div>
       </AnimatePresence>
-      <div className="mx-auto w-full max-w-3xl px-2 pb-4 md:px-4">
+      <div className="mx-auto w-full max-w-3xl px-2 pb-2 md:px-4">
         {isChatAvailable === false && (
           <Alert
             variant="destructive"

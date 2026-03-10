@@ -119,78 +119,83 @@ const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
   );
 
   return (
-    <div className="size-ful hover:shadow-md transition-shadow duration-200">
-      <PromptInputProvider>
-        <PromptInput
-          accept="image/*"
-          globalDrop
-          multiple
-          onSubmit={handleSubmit}
-        >
-          <PromptInputAttachmentsDisplay />
-          <PromptInputBody>
-            <PromptInputTextarea
-              disabled={!isChatAvailable}
-              placeholder={
-                !isChatAvailable
-                  ? 'Shhh, the AI is sleeping...'
-                  : 'Type a message...'
-              }
-            />
-          </PromptInputBody>
-          <PromptInputFooter>
-            <PromptInputTools>
-              <PromptInputActionMenu>
-                <PromptInputActionMenuTrigger />
-                <PromptInputActionMenuContent>
-                  <PromptInputActionAddAttachments />
-                </PromptInputActionMenuContent>
-              </PromptInputActionMenu>
-              <Popover onOpenChange={setSettingsOpen} open={settingsOpen}>
-                <PopoverTrigger asChild>
-                  <PromptInputButton
-                    tooltip="Chat settings"
-                    className={
-                      webSearch || thinking
-                        ? 'bg-primary/10 text-accent-foreground'
-                        : ''
-                    }
+    <div className="flex flex-col gap-1">
+      <div className="size-full">
+        <PromptInputProvider>
+          <PromptInput
+            accept="image/*"
+            globalDrop
+            multiple
+            onSubmit={handleSubmit}
+          >
+            <PromptInputAttachmentsDisplay />
+            <PromptInputBody>
+              <PromptInputTextarea
+                disabled={!isChatAvailable}
+                placeholder={
+                  !isChatAvailable
+                    ? 'Shhh, the AI is sleeping...'
+                    : 'Type a message...'
+                }
+              />
+            </PromptInputBody>
+            <PromptInputFooter>
+              <PromptInputTools>
+                <PromptInputActionMenu>
+                  <PromptInputActionMenuTrigger />
+                  <PromptInputActionMenuContent>
+                    <PromptInputActionAddAttachments />
+                  </PromptInputActionMenuContent>
+                </PromptInputActionMenu>
+                <Popover onOpenChange={setSettingsOpen} open={settingsOpen}>
+                  <PopoverTrigger asChild>
+                    <PromptInputButton
+                      tooltip="Chat settings"
+                      className={
+                        webSearch || thinking
+                          ? 'bg-primary/10 text-accent-foreground'
+                          : ''
+                      }
+                    >
+                      <SlidersHorizontalIcon size={16} />
+                    </PromptInputButton>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="start"
+                    className="w-52 p-3 space-y-3"
+                    side="top"
                   >
-                    <SlidersHorizontalIcon size={16} />
-                  </PromptInputButton>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="start"
-                  className="w-52 p-3 space-y-3"
-                  side="top"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <SparklesIcon size={14} />
-                      <span>Thinking</span>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <SparklesIcon size={14} />
+                        <span>Thinking</span>
+                      </div>
+                      <Switch
+                        checked={thinking}
+                        onCheckedChange={setThinking}
+                      />
                     </div>
-                    <Switch
-                      checked={thinking}
-                      onCheckedChange={setThinking}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <GlobeIcon size={14} />
-                      <span>Web Search</span>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <GlobeIcon size={14} />
+                        <span>Web Search</span>
+                      </div>
+                      <Switch
+                        checked={webSearch}
+                        onCheckedChange={setWebSearch}
+                      />
                     </div>
-                    <Switch
-                      checked={webSearch}
-                      onCheckedChange={setWebSearch}
-                    />
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </PromptInputTools>
-            <PromptInputSubmit status={status} />
-          </PromptInputFooter>
-        </PromptInput>
-      </PromptInputProvider>
+                  </PopoverContent>
+                </Popover>
+              </PromptInputTools>
+              <PromptInputSubmit status={status} />
+            </PromptInputFooter>
+          </PromptInput>
+        </PromptInputProvider>
+      </div>
+      <p className="text-center text-xs text-muted-foreground/80">
+        Breeze can make mistakes. Verify important information.
+      </p>
     </div>
   );
 };
