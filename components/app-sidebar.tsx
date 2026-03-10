@@ -28,7 +28,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter();
 
   const handleLogoClick = () => {
-    if (open) router.push('/chat');
+    if (open) router.push('/');
     else toggleSidebar();
   };
 

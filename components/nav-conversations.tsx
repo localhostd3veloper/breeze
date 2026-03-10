@@ -62,6 +62,7 @@ type ConversationItemProps = {
   onArchive: () => void;
   onRegenerateTitle: () => void;
   onDelete: () => void;
+  onNavigate: () => void;
 };
 
 function ConversationItem({
@@ -72,6 +73,7 @@ function ConversationItem({
   onArchive,
   onRegenerateTitle,
   onDelete,
+  onNavigate,
 }: ConversationItemProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { margin: '-20px 0px', once: false });
@@ -85,7 +87,7 @@ function ConversationItem({
     >
       <SidebarMenuItem>
         <SidebarMenuButton asChild isActive={isActive}>
-          <Link href={`/chat/${item.id}`}>
+          <Link href={`/chat/${item.id}`} onClick={onNavigate}>
             {item.isPinned && <GemIcon className="text-muted-foreground" />}
             <span className="truncate font-[450]">{item.title}</span>
           </Link>
@@ -131,7 +133,7 @@ function ConversationItem({
 }
 
 export function NavConversations() {
-  const { isMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const pathName = usePathname();
   const { data: conversations = [], isLoading } = useConversations();
   const archiveMutation = useArchiveConversation();
@@ -165,6 +167,7 @@ export function NavConversations() {
               onArchive={() => archiveMutation.mutate(item.id)}
               onRegenerateTitle={() => regenerateTitleMutation.mutate(item.id)}
               onDelete={() => setDeleteId(item.id)}
+              onNavigate={() => setOpenMobile(false)}
             />
           ))}
           {!isLoading && conversations.length === 0 && (
