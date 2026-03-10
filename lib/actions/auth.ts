@@ -1,7 +1,7 @@
 'use server';
 
-import { loginSchema, signupSchema } from '@/lib/validations/auth';
 import { signUpAction } from '@/app/actions/auth';
+import { loginSchema, signupSchema } from '@/lib/validations/auth';
 
 type ActionState = {
   success?: boolean;

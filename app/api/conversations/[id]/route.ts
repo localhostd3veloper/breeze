@@ -1,15 +1,13 @@
-import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { z } from 'zod';
+
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/db/mongodb';
 import Conversation from '@/lib/models/conversation';
 import type { ConversationDTO } from '@/lib/types/conversation';
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -48,10 +46,7 @@ const patchSchema = z
   })
   .strict();
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -64,7 +59,7 @@ export async function PATCH(
   if (!parsed.success) {
     return NextResponse.json(
       { error: 'Invalid request', details: parsed.error.flatten() },
-      { status: 400 },
+      { status: 400 }
     );
   }
 

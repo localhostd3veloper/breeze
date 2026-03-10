@@ -1,12 +1,11 @@
 'use server';
 
 import bcrypt from 'bcryptjs';
+
 import dbConnect from '@/lib/db/mongodb';
 import User from '@/lib/models/user';
 
-export type SignupResult =
-  | { success: true }
-  | { success: false; error: string };
+export type SignupResult = { success: true } | { success: false; error: string };
 
 export async function signUpAction(data: {
   name: string;

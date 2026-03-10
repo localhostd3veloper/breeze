@@ -1,16 +1,14 @@
-import { getServerSession } from 'next-auth';
-import { NextResponse } from 'next/server';
 import { Types } from 'mongoose';
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/db/mongodb';
-import Conversation from '@/lib/models/conversation';
 import ChatMessage from '@/lib/models/chat-message';
+import Conversation from '@/lib/models/conversation';
 import type { ChatMessageDTO } from '@/lib/types/conversation';
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -28,9 +26,7 @@ export async function GET(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const messages = await ChatMessage.find({ conversationId: id })
-    .sort({ createdAt: 1 })
-    .lean();
+  const messages = await ChatMessage.find({ conversationId: id }).sort({ createdAt: 1 }).lean();
 
   const data: ChatMessageDTO[] = messages.map((m) => ({
     id: m._id.toString(),
@@ -46,10 +42,7 @@ export async function GET(
   return NextResponse.json(data);
 }
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -67,8 +60,7 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { role, content, reasoning, images, toolCalls, toolCallId } =
-    await req.json();
+  const { role, content, reasoning, images, toolCalls, toolCallId } = await req.json();
 
   const message = await ChatMessage.create({
     conversationId: id,
@@ -94,18 +86,13 @@ export async function POST(
   return NextResponse.json(data, { status: 201 });
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id)
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id } = await params;
   const fromId = new URL(req.url).searchParams.get('fromId');
-  if (!fromId)
-    return NextResponse.json({ error: 'fromId required' }, { status: 400 });
+  if (!fromId) return NextResponse.json({ error: 'fromId required' }, { status: 400 });
 
   let fromObjectId: Types.ObjectId;
   try {

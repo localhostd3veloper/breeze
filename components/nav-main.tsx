@@ -1,19 +1,9 @@
 'use client';
 
-import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from '@/components/ui/sidebar';
 import { PlusSquare, Search } from 'lucide-react';
-import { useCtrlShortcut } from '@/hooks/use-ctrl-shortcuts';
 import { useRouter } from 'next/navigation';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { Kbd } from './ui/kbd';
 import { useEffect, useState } from 'react';
+
 import {
   Command,
   CommandDialog,
@@ -23,9 +13,21 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { useConversations } from '@/hooks/use-conversations';
-import { useSearch } from '@/hooks/use-search';
+import {
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useConversations } from '@/hooks/use-conversations';
+import { useCtrlShortcut } from '@/hooks/use-ctrl-shortcuts';
+import { useSearch } from '@/hooks/use-search';
+
+import { Kbd } from './ui/kbd';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 type Segment = { text: string; highlighted: boolean };
 
@@ -45,12 +47,15 @@ function HighlightText({ text, query }: { text: string; query: string }) {
     <>
       {segmentText(text, query).map((seg, i) =>
         seg.highlighted ? (
-          <mark key={i} className="rounded-[2px] bg-yellow-300/60 text-foreground dark:bg-yellow-500/40">
+          <mark
+            key={i}
+            className="text-foreground rounded-[2px] bg-yellow-300/60 dark:bg-yellow-500/40"
+          >
             {seg.text}
           </mark>
         ) : (
           <span key={i}>{seg.text}</span>
-        ),
+        )
       )}
     </>
   );
@@ -71,13 +76,12 @@ export function NavMain() {
     return () => clearTimeout(timer);
   }, [query]);
 
-
   useCtrlShortcut(
     'o',
     () => {
       router.push('/chat');
     },
-    { shift: true },
+    { shift: true }
   );
 
   useCtrlShortcut('k', () => setSearchOpen(true));
@@ -91,8 +95,7 @@ export function NavMain() {
   };
 
   const hasResults =
-    (searchResults?.conversations.length ?? 0) > 0 ||
-    (searchResults?.messages.length ?? 0) > 0;
+    (searchResults?.conversations.length ?? 0) > 0 || (searchResults?.messages.length ?? 0) > 0;
 
   return (
     <>
@@ -102,23 +105,25 @@ export function NavMain() {
           <SidebarMenuItem>
             <Tooltip>
               <TooltipTrigger asChild>
-                <SidebarMenuButton onClick={() => { router.push('/chat'); closeMobile(); }}>
+                <SidebarMenuButton
+                  onClick={() => {
+                    router.push('/chat');
+                    closeMobile();
+                  }}
+                >
                   <PlusSquare />
                   <span>New Chat</span>
                   {open && (
-                    <Kbd className="ml-auto hidden text-muted-foreground/70 md:inline-flex">
+                    <Kbd className="text-muted-foreground/70 ml-auto hidden md:inline-flex">
                       <span className="text-xs">⌘⇧</span>O
                     </Kbd>
                   )}
                 </SidebarMenuButton>
               </TooltipTrigger>
               {!open && (
-                <TooltipContent
-                  className="flex items-center gap-2"
-                  side="right"
-                >
+                <TooltipContent className="flex items-center gap-2" side="right">
                   <span>New Chat</span>
-                  <Kbd className="hidden text-muted-foreground/70 md:inline-flex">
+                  <Kbd className="text-muted-foreground/70 hidden md:inline-flex">
                     <span className="text-xs">⌘⇧</span>O
                   </Kbd>
                 </TooltipContent>
@@ -132,19 +137,16 @@ export function NavMain() {
                   <Search />
                   <span>Search Chats</span>
                   {open && (
-                    <Kbd className="ml-auto hidden text-muted-foreground/70 md:inline-flex">
+                    <Kbd className="text-muted-foreground/70 ml-auto hidden md:inline-flex">
                       <span className="text-xs">⌘</span>K
                     </Kbd>
                   )}
                 </SidebarMenuButton>
               </TooltipTrigger>
               {!open && (
-                <TooltipContent
-                  className="flex items-center gap-2"
-                  side="right"
-                >
+                <TooltipContent className="flex items-center gap-2" side="right">
                   <span>Search Chats</span>
-                  <Kbd className="hidden text-muted-foreground/70 md:inline-flex">
+                  <Kbd className="text-muted-foreground/70 hidden md:inline-flex">
                     <span className="text-xs">⌘</span>K
                   </Kbd>
                 </TooltipContent>
@@ -179,11 +181,7 @@ export function NavMain() {
                 <CommandEmpty>No conversations found.</CommandEmpty>
                 <CommandGroup heading="Conversations">
                   {conversations.map((item) => (
-                    <CommandItem
-                      key={item.id}
-                      value={item.id}
-                      onSelect={() => navigate(item.id)}
-                    >
+                    <CommandItem key={item.id} value={item.id} onSelect={() => navigate(item.id)}>
                       {item.title}
                     </CommandItem>
                   ))}
@@ -204,17 +202,11 @@ export function NavMain() {
                     ))}
                   </div>
                 )}
-                {!isFetching && !hasResults && (
-                  <CommandEmpty>No results found.</CommandEmpty>
-                )}
+                {!isFetching && !hasResults && <CommandEmpty>No results found.</CommandEmpty>}
                 {!isFetching && (searchResults?.conversations.length ?? 0) > 0 && (
                   <CommandGroup heading="Conversations">
                     {searchResults!.conversations.map((item) => (
-                      <CommandItem
-                        key={item.id}
-                        value={item.id}
-                        onSelect={() => navigate(item.id)}
-                      >
+                      <CommandItem key={item.id} value={item.id} onSelect={() => navigate(item.id)}>
                         <HighlightText text={item.title} query={debouncedQuery} />
                       </CommandItem>
                     ))}
@@ -229,7 +221,7 @@ export function NavMain() {
                         onSelect={() => navigate(msg.conversationId)}
                         className="flex flex-col items-start gap-0.5"
                       >
-                        <span className="text-xs font-medium text-muted-foreground">
+                        <span className="text-muted-foreground text-xs font-medium">
                           {msg.conversationTitle}
                         </span>
                         <span className="line-clamp-1 text-sm">

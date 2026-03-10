@@ -1,10 +1,11 @@
-import { getServerSession } from 'next-auth';
+import mongoose from 'mongoose';
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/db/mongodb';
-import Conversation from '@/lib/models/conversation';
 import ChatMessage from '@/lib/models/chat-message';
-import mongoose from 'mongoose';
+import Conversation from '@/lib/models/conversation';
 
 function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

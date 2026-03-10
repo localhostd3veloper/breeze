@@ -1,10 +1,13 @@
 'use client';
 
-import * as React from 'react';
+import { PanelLeftIcon } from 'lucide-react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
-import { NavMain } from '@/components/nav-main';
 import { NavConversations } from '@/components/nav-conversations';
+import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import { Kbd } from '@/components/ui/kbd';
 import {
   Sidebar,
   SidebarContent,
@@ -14,14 +17,11 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { PanelLeftIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from './ui/button';
-import { useRouter } from 'next/navigation';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { useCtrlShortcut } from '@/hooks/use-ctrl-shortcuts';
-import { Kbd } from '@/components/ui/kbd';
-import Image from 'next/image';
+import { cn } from '@/lib/utils';
+
+import { Button } from './ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { open, isMobile, toggleSidebar } = useSidebar();
@@ -38,20 +38,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader className="flex-row items-center justify-between py-3">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogoClick}
-              className="group/logo"
-            >
+            <Button variant="ghost" size="icon" onClick={handleLogoClick} className="group/logo">
               <Image
                 src="/favicon.svg"
                 alt="Breeze Logo"
                 width={32}
                 height={32}
-                className="h-6 transition-opacity group-data-[state=collapsed]:group-hover/logo:hidden stroke-[1.5] text-primary"
+                className="text-primary h-6 stroke-[1.5] transition-opacity group-data-[state=collapsed]:group-hover/logo:hidden"
               />
-              <PanelLeftIcon className="absolute text-primary opacity-0 transition-opacity group-data-[state=collapsed]:group-hover/logo:opacity-100" />
+              <PanelLeftIcon className="text-primary absolute opacity-0 transition-opacity group-data-[state=collapsed]:group-hover/logo:opacity-100" />
             </Button>
           </TooltipTrigger>
           {!open && (
@@ -67,10 +62,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <Tooltip>
           <TooltipTrigger asChild>
             <SidebarTrigger
-              className={cn(
-                'hidden ',
-                (open || isMobile) && ' flex justify-center items-center',
-              )}
+              className={cn('hidden', (open || isMobile) && 'flex items-center justify-center')}
             />
           </TooltipTrigger>
           {open && (

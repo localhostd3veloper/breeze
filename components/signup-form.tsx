@@ -1,26 +1,18 @@
 'use client';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { signupSchema, type SignupInput } from '@/lib/validations/auth';
-import { signupUser } from '@/lib/actions/auth';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 
-export function SignupForm({
-  className,
-  ...props
-}: React.ComponentProps<'div'>) {
+import { Button } from '@/components/ui/button';
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { signupUser } from '@/lib/actions/auth';
+import { cn } from '@/lib/utils';
+import { type SignupInput, signupSchema } from '@/lib/validations/auth';
+
+export function SignupForm({ className, ...props }: React.ComponentProps<'div'>) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
@@ -59,28 +51,26 @@ export function SignupForm({
   return (
     <div
       className={cn(
-        'flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500',
-        className,
+        'animate-in fade-in slide-in-from-bottom-4 flex flex-col gap-6 duration-500',
+        className
       )}
       {...props}
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <FieldGroup>
-          <div className="flex flex-col items-center gap-1 text-center mb-4">
+          <div className="mb-4 flex flex-col items-center gap-1 text-center">
             <h1 className="text-2xl font-bold">Create your account</h1>
-            <p className="text-sm text-balance text-muted-foreground">
+            <p className="text-muted-foreground text-sm text-balance">
               Fill in the form below to create your account
             </p>
           </div>
 
           {error && (
-            <div className="text-red-500 text-sm text-center font-medium mb-4">
-              {error}
-            </div>
+            <div className="mb-4 text-center text-sm font-medium text-red-500">{error}</div>
           )}
 
           {success && (
-            <div className="text-green-500 text-sm text-center font-medium mb-4">
+            <div className="mb-4 text-center text-sm font-medium text-green-500">
               Account created! Redirecting to login...
             </div>
           )}
@@ -99,9 +89,7 @@ export function SignupForm({
                   className="bg-background"
                   aria-invalid={fieldState.invalid}
                 />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}
           />
@@ -124,8 +112,8 @@ export function SignupForm({
                   <FieldError errors={[fieldState.error]} />
                 ) : (
                   <FieldDescription>
-                    We&apos;ll use this to contact you. We will not share your
-                    email with anyone else.
+                    We&apos;ll use this to contact you. We will not share your email with anyone
+                    else.
                   </FieldDescription>
                 )}
               </Field>
@@ -148,9 +136,7 @@ export function SignupForm({
                 {fieldState.invalid ? (
                   <FieldError errors={[fieldState.error]} />
                 ) : (
-                  <FieldDescription>
-                    Must be at least 8 characters long.
-                  </FieldDescription>
+                  <FieldDescription>Must be at least 8 characters long.</FieldDescription>
                 )}
               </Field>
             )}
@@ -172,9 +158,7 @@ export function SignupForm({
                 {fieldState.invalid ? (
                   <FieldError errors={[fieldState.error]} />
                 ) : (
-                  <FieldDescription>
-                    Please confirm your password.
-                  </FieldDescription>
+                  <FieldDescription>Please confirm your password.</FieldDescription>
                 )}
               </Field>
             )}
@@ -187,7 +171,7 @@ export function SignupForm({
           </Field>
 
           <Field className="">
-            <FieldDescription className="px-6 text-center mt-4">
+            <FieldDescription className="mt-4 px-6 text-center">
               Already have an account?{' '}
               <Link href="/login" className="underline underline-offset-4">
                 Sign in

@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+
 import type { ChatMessageDTO } from '@/lib/types/conversation';
 
 async function fetchMessages(conversationId: string): Promise<ChatMessageDTO[]> {

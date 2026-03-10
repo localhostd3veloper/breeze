@@ -1,17 +1,14 @@
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { ChatHeader } from './components/chat-header';
 import { AppSidebar } from '@/components/app-sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
-export default async function ChatLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+import { ChatHeader } from './components/chat-header';
+
+export default async function ChatLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <main className="flex h-dvh min-h-screen w-full">
         <AppSidebar />
-        <div className="relative flex-1 h-full flex flex-col">
+        <div className="relative flex h-full flex-1 flex-col">
           <ChatHeader />
           {children}
         </div>

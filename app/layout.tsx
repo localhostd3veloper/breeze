@@ -1,11 +1,13 @@
+import './globals.css';
+
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
 import { Geist_Mono, Manrope } from 'next/font/google';
-import './globals.css';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from 'next-themes';
-import { Toaster } from '@/components/ui/sonner';
+
 import { GlobalShortcuts } from '@/components/global-shortcuts';
+import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const manrope = Manrope({
   variable: '--font-manrope',
@@ -76,7 +78,6 @@ export const metadata: Metadata = {
 
 import Providers from '@/components/providers';
 import ServiceWorkerRegistration from '@/components/service-worker-registration';
-
 import dbConnect from '@/lib/db/mongodb';
 
 export default async function RootLayout({
@@ -87,9 +88,7 @@ export default async function RootLayout({
   await dbConnect();
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${manrope.variable} ${geistMono.variable} antialiased font-sans`}
-      >
+      <body className={`${manrope.variable} ${geistMono.variable} font-sans antialiased`}>
         <Analytics />
         <ServiceWorkerRegistration />
         <ThemeProvider

@@ -1,6 +1,30 @@
 'use client';
 
 import {
+  ArchiveIcon,
+  GemIcon,
+  MoreHorizontalIcon,
+  PinIcon,
+  ShareIcon,
+  Sparkles,
+  Trash2Icon,
+} from 'lucide-react';
+import { motion, useInView } from 'motion/react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useRef, useState } from 'react';
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -16,37 +40,14 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  MoreHorizontalIcon,
-  PinIcon,
-  ArchiveIcon,
-  ShareIcon,
-  Trash2Icon,
-  GemIcon,
-  Sparkles,
-} from 'lucide-react';
-import Link from 'next/link';
-import { useRef, useState } from 'react';
-import { motion, useInView } from 'motion/react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  useConversations,
   useArchiveConversation,
+  useConversations,
   useDeleteConversation,
   usePinConversation,
   useRegenerateTitle,
 } from '@/hooks/use-conversations';
-import { usePathname } from 'next/navigation';
 
 type Conversation = {
   id: string;
@@ -161,9 +162,7 @@ export function NavConversations() {
               item={item}
               isMobile={isMobile}
               isActive={pathName === `/chat/${item.id}`}
-              onPin={() =>
-                pinMutation.mutate({ id: item.id, isPinned: !item.isPinned })
-              }
+              onPin={() => pinMutation.mutate({ id: item.id, isPinned: !item.isPinned })}
               onArchive={() => archiveMutation.mutate(item.id)}
               onRegenerateTitle={() => regenerateTitleMutation.mutate(item.id)}
               onDelete={() => setDeleteId(item.id)}
@@ -171,23 +170,16 @@ export function NavConversations() {
             />
           ))}
           {!isLoading && conversations.length === 0 && (
-            <div className="px-2 py-1 text-sm text-sidebar-foreground/50">
-              No conversations yet
-            </div>
+            <div className="text-sidebar-foreground/50 px-2 py-1 text-sm">No conversations yet</div>
           )}
         </SidebarMenu>
       </SidebarGroup>
 
-      <AlertDialog
-        open={deleteId !== null}
-        onOpenChange={(open) => !open && setDeleteId(null)}
-      >
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

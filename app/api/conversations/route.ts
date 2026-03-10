@@ -1,5 +1,6 @@
-import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/db/mongodb';
 import Conversation from '@/lib/models/conversation';
@@ -49,6 +50,6 @@ export async function POST(req: Request) {
 
   return NextResponse.json(
     { id: conversation._id.toString(), title: conversation.title },
-    { status: 201 },
+    { status: 201 }
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+
 import { useCtrlShortcut } from '@/hooks/use-ctrl-shortcuts';
 
 export function GlobalShortcuts() {

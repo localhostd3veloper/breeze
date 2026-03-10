@@ -1,8 +1,9 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ConversationDTO } from '@/lib/types/conversation';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+
+import type { ConversationDTO } from '@/lib/types/conversation';
 
 const QUERY_KEY = ['conversations'] as const;
 
@@ -14,9 +15,7 @@ async function fetchConversations(): Promise<ConversationDTO[]> {
 
 async function patchConversation(
   id: string,
-  patch: Partial<
-    Pick<ConversationDTO, 'isPinned' | 'isArchived'> & { isDeleted: boolean }
-  >,
+  patch: Partial<Pick<ConversationDTO, 'isPinned' | 'isArchived'> & { isDeleted: boolean }>
 ): Promise<ConversationDTO> {
   const res = await fetch(`/api/conversations/${id}`, {
     method: 'PATCH',
@@ -43,7 +42,7 @@ export function useArchiveConversation() {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<ConversationDTO[]>(QUERY_KEY);
       queryClient.setQueryData<ConversationDTO[]>(QUERY_KEY, (old = []) =>
-        old.map((c) => (c.id === id ? { ...c, isArchived: true } : c)),
+        old.map((c) => (c.id === id ? { ...c, isArchived: true } : c))
       );
       return { previous };
     },
@@ -67,7 +66,7 @@ export function useDeleteConversation() {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<ConversationDTO[]>(QUERY_KEY);
       queryClient.setQueryData<ConversationDTO[]>(QUERY_KEY, (old = []) =>
-        old.filter((c) => c.id !== id),
+        old.filter((c) => c.id !== id)
       );
       return { previous };
     },
@@ -98,7 +97,7 @@ export function useRegenerateTitle() {
     },
     onSuccess: ({ id, title }) => {
       queryClient.setQueryData<ConversationDTO[]>(QUERY_KEY, (old = []) =>
-        old.map((c) => (c.id === id ? { ...c, title } : c)),
+        old.map((c) => (c.id === id ? { ...c, title } : c))
       );
       toast.success('Title regenerated');
     },
@@ -118,7 +117,7 @@ export function usePinConversation() {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<ConversationDTO[]>(QUERY_KEY);
       queryClient.setQueryData<ConversationDTO[]>(QUERY_KEY, (old = []) =>
-        old.map((c) => (c.id === id ? { ...c, isPinned } : c)),
+        old.map((c) => (c.id === id ? { ...c, isPinned } : c))
       );
       return { previous };
     },

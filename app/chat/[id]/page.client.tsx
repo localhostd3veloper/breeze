@@ -1,35 +1,30 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { Coffee } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'motion/react';
+
 import ChatInput from '@/components/Input';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useChatMessages } from '@/hooks/use-chat-messages';
+
 import { ChatMessages } from '../components/chat-messages';
 import { useChatStream } from '../hooks/useChatStream';
 import { getChatHealth } from '../utils/health';
-import { useChatMessages } from '@/hooks/use-chat-messages';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Coffee } from 'lucide-react';
 
 interface ChatConversationClientProps {
   conversationId: string;
 }
 
-export function ChatConversationClient({
-  conversationId,
-}: ChatConversationClientProps) {
+export function ChatConversationClient({ conversationId }: ChatConversationClientProps) {
   const router = useRouter();
   const { handleSubmit, handleEditMessage, handleRegenerateMessage } =
     useChatStream(conversationId);
 
-  const {
-    data: messages,
-    isLoading,
-    isError,
-    error,
-  } = useChatMessages(conversationId);
+  const { data: messages, isLoading, isError, error } = useChatMessages(conversationId);
 
   const { data: isChatAvailable } = useQuery({
     queryKey: ['chatHealth'],
@@ -54,7 +49,7 @@ export function ChatConversationClient({
       <AnimatePresence mode="wait">
         <motion.div
           key={conversationId}
-          className="flex flex-col flex-1 min-h-0"
+          className="flex min-h-0 flex-1 flex-col"
           initial={{ opacity: 0 }}
           animate={{ opacity: isLoading ? 0 : 1 }}
           transition={{ duration: 1, ease: 'easeOut' }}
@@ -71,23 +66,19 @@ export function ChatConversationClient({
         {isChatAvailable === false && (
           <Alert
             variant="destructive"
-            className="mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300 border-orange-500/50 bg-orange-500/10 text-orange-600 dark:border-orange-500/30 dark:text-orange-400"
+            className="animate-in fade-in slide-in-from-bottom-2 mb-4 border-orange-500/50 bg-orange-500/10 text-orange-600 duration-300 dark:border-orange-500/30 dark:text-orange-400"
           >
             <Coffee className="size-4" />
             <AlertTitle className="flex items-center gap-2">
               The AI is currently catching some Zs... 😴
             </AlertTitle>
             <AlertDescription>
-              The backend is down — probably maintenance or the dev is asleep.
-              You can browse past conversations, but new messages won&apos;t go
-              through. Check back later!
+              The backend is down — probably maintenance or the dev is asleep. You can browse past
+              conversations, but new messages won&apos;t go through. Check back later!
             </AlertDescription>
           </Alert>
         )}
-        <ChatInput
-          onSubmit={handleSubmit}
-          isChatAvailable={!!isChatAvailable}
-        />
+        <ChatInput onSubmit={handleSubmit} isChatAvailable={!!isChatAvailable} />
       </div>
     </>
   );

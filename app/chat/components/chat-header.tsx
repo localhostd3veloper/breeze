@@ -1,15 +1,12 @@
 'use client';
-import { ToggleTheme } from '@/components/theme-switch';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { ConversationDownload } from '@/components/ai-elements/conversation';
 import { Heart } from 'lucide-react';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+
+import { ConversationDownload } from '@/components/ai-elements/conversation';
+import { ToggleTheme } from '@/components/theme-switch';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useChatMessages } from '@/hooks/use-chat-messages';
 
 export function ChatHeader() {
@@ -19,13 +16,13 @@ export function ChatHeader() {
   const { data: messages } = useChatMessages(conversationId ?? '');
 
   return (
-    <header className="static z-10 lg:absolute top-0 left-0 right-0 lg:w-full flex items-center justify-between border-b lg:border-none p-3">
-      <div className="logo font-satisfy text-lg md:text-xl flex items-center">
+    <header className="static top-0 right-0 left-0 z-10 flex items-center justify-between border-b p-3 lg:absolute lg:w-full lg:border-none">
+      <div className="logo font-satisfy flex items-center text-lg md:text-xl">
         <SidebarTrigger className="md:hidden" />
         <Tooltip>
           <TooltipTrigger className="flex gap-1">Breeze.</TooltipTrigger>
           <TooltipContent side="right" className="flex items-center gap-0.5">
-            Made with <Heart className="size-3 text-destructive" /> by
+            Made with <Heart className="text-destructive size-3" /> by
             <Link href="https://github.com/localhostd3veloper" target="_blank">
               @localhostd3veloper
             </Link>

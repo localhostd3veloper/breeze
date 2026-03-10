@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
 
 // Interface to match AI SDK's tool call structure
 export interface IToolCall {
@@ -54,7 +54,7 @@ const ChatMessageSchema: Schema = new Schema(
   },
   {
     timestamps: { createdAt: true, updatedAt: false }, // Messages usually aren't updated
-  },
+  }
 );
 
 // Index for efficiently fetching a conversation's messages in chronological order

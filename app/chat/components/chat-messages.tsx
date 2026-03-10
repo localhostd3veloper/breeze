@@ -1,11 +1,14 @@
+import { Copy, CopyCheck, CornerDownLeft, Pencil, RefreshCw, X } from 'lucide-react';
 import { Fragment, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { useStickToBottomContext } from 'use-stick-to-bottom';
+
 import {
   Conversation,
   ConversationContent,
   ConversationEmptyState,
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation';
-import { useStickToBottomContext } from 'use-stick-to-bottom';
 import {
   Message,
   MessageAction,
@@ -13,17 +16,12 @@ import {
   MessageContent,
   MessageResponse,
 } from '@/components/ai-elements/message';
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from '@/components/ai-elements/reasoning';
+import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning';
 import { Shimmer } from '@/components/ai-elements/shimmer';
 import { Button } from '@/components/ui/button';
-import { Copy, CopyCheck, Pencil, RefreshCw, X, CornerDownLeft } from 'lucide-react';
-import { toast } from 'sonner';
-import { emptyStateMessages } from '../utils/constants';
 import type { ChatMessageDTO } from '@/lib/types/conversation';
+
+import { emptyStateMessages } from '../utils/constants';
 
 function ScrollToBottomOnStream({ isAnyStreaming }: { isAnyStreaming: boolean }) {
   const { scrollToBottom } = useStickToBottomContext();
@@ -53,8 +51,7 @@ export function ChatMessages({
   onRegenerateMessage,
 }: ChatMessagesProps) {
   const [greeting] = useState(
-    () =>
-      emptyStateMessages[Math.floor(Math.random() * emptyStateMessages.length)],
+    () => emptyStateMessages[Math.floor(Math.random() * emptyStateMessages.length)]
   );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
@@ -94,7 +91,7 @@ export function ChatMessages({
 
   return (
     <Conversation className="flex-1">
-      <ConversationContent className="mx-auto w-full max-w-3xl min-h-full gap-2 px-4 py-6">
+      <ConversationContent className="mx-auto min-h-full w-full max-w-3xl gap-2 px-4 py-6">
         <ScrollToBottomOnStream isAnyStreaming={isAnyStreaming} />
         {messages.length === 0 && !isLoading ? (
           <div className="flex flex-1 items-center justify-center">
@@ -111,7 +108,7 @@ export function ChatMessages({
                 <div className="ml-auto flex w-full max-w-[95%] flex-col gap-2">
                   <textarea
                     ref={textareaRef}
-                    className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+                    className="border-border bg-background focus:ring-ring w-full resize-none rounded-md border px-3 py-2 text-sm outline-none focus:ring-1"
                     rows={Math.max(3, editText.split('\n').length)}
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
@@ -148,18 +145,14 @@ export function ChatMessages({
                 <Message from={msg.role as 'user' | 'assistant'}>
                   <MessageContent>
                     {msg.role === 'assistant' ? (
-                      msg.isStreaming &&
-                      msg.content === '' &&
-                      !msg.reasoning ? (
+                      msg.isStreaming && msg.content === '' && !msg.reasoning ? (
                         <Shimmer>Thinking…</Shimmer>
                       ) : (
                         <>
                           {msg.reasoning && (
                             <Reasoning isStreaming={msg.isStreaming}>
                               <ReasoningTrigger />
-                              <ReasoningContent>
-                                {msg.reasoning}
-                              </ReasoningContent>
+                              <ReasoningContent>{msg.reasoning}</ReasoningContent>
                             </Reasoning>
                           )}
                           <MessageResponse>{msg.content}</MessageResponse>
@@ -187,32 +180,30 @@ export function ChatMessages({
                 </Message>
               )}
 
-              {msg.role === 'assistant' &&
-                !msg.isStreaming &&
-                msg.content !== '' && (
-                  <MessageActions>
+              {msg.role === 'assistant' && !msg.isStreaming && msg.content !== '' && (
+                <MessageActions>
+                  <MessageAction
+                    tooltip="Copy"
+                    onClick={() => {
+                      navigator.clipboard.writeText(msg.content);
+                      toast.success('Copied to clipboard', {
+                        icon: <CopyCheck className="h-4 w-4" />,
+                      });
+                    }}
+                  >
+                    <Copy />
+                  </MessageAction>
+                  {onRegenerateMessage && (
                     <MessageAction
-                      tooltip="Copy"
-                      onClick={() => {
-                        navigator.clipboard.writeText(msg.content);
-                        toast.success('Copied to clipboard', {
-                          icon: <CopyCheck className="h-4 w-4" />,
-                        });
-                      }}
+                      tooltip="Regenerate"
+                      disabled={isAnyStreaming}
+                      onClick={() => onRegenerateMessage(msg.id)}
                     >
-                      <Copy />
+                      <RefreshCw />
                     </MessageAction>
-                    {onRegenerateMessage && (
-                      <MessageAction
-                        tooltip="Regenerate"
-                        disabled={isAnyStreaming}
-                        onClick={() => onRegenerateMessage(msg.id)}
-                      >
-                        <RefreshCw />
-                      </MessageAction>
-                    )}
-                  </MessageActions>
-                )}
+                  )}
+                </MessageActions>
+              )}
               {msg.role === 'user' && editingId !== msg.id && (
                 <MessageActions className="justify-end">
                   <MessageAction

@@ -1,14 +1,11 @@
-import { notFound } from 'next/navigation';
-import { LoginForm } from '@/components/login-form';
-import { SignupForm } from '@/components/signup-form';
 import Image from 'next/image';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
-export default async function AuthPage({
-  params,
-}: {
-  params: Promise<{ auth: string }>;
-}) {
+import { LoginForm } from '@/components/login-form';
+import { SignupForm } from '@/components/signup-form';
+
+export default async function AuthPage({ params }: { params: Promise<{ auth: string }> }) {
   const { auth } = await params;
 
   if (auth !== 'login' && auth !== 'signup') {
@@ -19,10 +16,7 @@ export default async function AuthPage({
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-medium font-satisfy"
-          >
+          <Link href="/" className="font-satisfy flex items-center gap-2 font-medium">
             <Image
               src="/favicon.svg"
               alt="Breeze Logo"
@@ -34,13 +28,11 @@ export default async function AuthPage({
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
-            {auth === 'login' ? <LoginForm /> : <SignupForm />}
-          </div>
+          <div className="w-full max-w-xs">{auth === 'login' ? <LoginForm /> : <SignupForm />}</div>
         </div>
       </div>
       <div className="p-4">
-        <div className="relative hidden bg-muted lg:block h-full w-full rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-700">
+        <div className="bg-muted animate-in fade-in zoom-in-95 relative hidden h-full w-full overflow-hidden rounded-2xl duration-700 lg:block">
           <Image
             width={1000}
             height={1000}

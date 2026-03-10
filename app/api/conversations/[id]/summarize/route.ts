@@ -1,14 +1,12 @@
-import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/db/mongodb';
-import Conversation from '@/lib/models/conversation';
 import ChatMessage from '@/lib/models/chat-message';
+import Conversation from '@/lib/models/conversation';
 
-export async function POST(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,9 +24,7 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const messages = await ChatMessage.find({ conversationId: id })
-    .sort({ createdAt: 1 })
-    .lean();
+  const messages = await ChatMessage.find({ conversationId: id }).sort({ createdAt: 1 }).lean();
 
   const history = messages.map((m) => ({ role: m.role, content: m.content }));
 
@@ -42,10 +38,7 @@ export async function POST(
   });
 
   if (!upstream.ok) {
-    return NextResponse.json(
-      { error: 'Summarize failed' },
-      { status: upstream.status },
-    );
+    return NextResponse.json({ error: 'Summarize failed' }, { status: upstream.status });
   }
 
   const { title } = await upstream.json();

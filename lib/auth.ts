@@ -1,6 +1,7 @@
+import bcrypt from 'bcryptjs';
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
+
 import dbConnect from '@/lib/db/mongodb';
 import User from '@/lib/models/user';
 
@@ -31,10 +32,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Invalid credentials');
         }
 
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.password,
-        );
+        const isValid = await bcrypt.compare(credentials.password, user.password);
 
         if (!isValid) {
           throw new Error('Incorrect password');

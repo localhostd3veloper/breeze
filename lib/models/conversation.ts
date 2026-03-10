@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IConversation extends Document {
   user: Types.ObjectId;
@@ -20,7 +20,7 @@ const ConversationSchema: Schema = new Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 // Index to efficiently list a specific user's conversations, typically ordered by most recent

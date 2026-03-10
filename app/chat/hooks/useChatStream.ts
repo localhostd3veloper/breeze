@@ -1,34 +1,28 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+
 import type { ChatMessageDTO } from '@/lib/types/conversation';
 import type { StreamEvent } from '@/lib/types/stream';
 
 const MESSAGES_KEY = (id: string) => ['conversations', id, 'messages'];
 
-function getMessages(
-  qc: ReturnType<typeof useQueryClient>,
-  convId: string,
-): ChatMessageDTO[] {
+function getMessages(qc: ReturnType<typeof useQueryClient>, convId: string): ChatMessageDTO[] {
   return qc.getQueryData<ChatMessageDTO[]>(MESSAGES_KEY(convId)) ?? [];
 }
 
 function setMessages(
   qc: ReturnType<typeof useQueryClient>,
   convId: string,
-  updater: (prev: ChatMessageDTO[]) => ChatMessageDTO[],
+  updater: (prev: ChatMessageDTO[]) => ChatMessageDTO[]
 ) {
-  qc.setQueryData<ChatMessageDTO[]>(MESSAGES_KEY(convId), (prev) =>
-    updater(prev ?? []),
-  );
+  qc.setQueryData<ChatMessageDTO[]>(MESSAGES_KEY(convId), (prev) => updater(prev ?? []));
 }
 
-async function* parseNdjson(
-  body: ReadableStream<Uint8Array>,
-): AsyncGenerator<StreamEvent> {
+async function* parseNdjson(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamEvent> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
@@ -82,7 +76,7 @@ export function useChatStream(conversationId?: string) {
       convId: string,
       userMsg: UserMessageRef,
       webSearch: boolean,
-      thinking: boolean,
+      thinking: boolean
     ): Promise<void> => {
       const now = new Date().toISOString();
       const assistantMsgId = crypto.randomUUID();
@@ -121,9 +115,13 @@ export function useChatStream(conversationId?: string) {
         setMessages(queryClient, convId, (prev) =>
           prev.map((m) =>
             m.id === assistantMsgId
-              ? { ...m, content: `Error: ${streamRes.status} ${streamRes.statusText}`, isStreaming: false }
-              : m,
-          ),
+              ? {
+                  ...m,
+                  content: `Error: ${streamRes.status} ${streamRes.statusText}`,
+                  isStreaming: false,
+                }
+              : m
+          )
         );
         return;
       }
@@ -135,20 +133,20 @@ export function useChatStream(conversationId?: string) {
         if (event.type === 'text') {
           fullText += event.content;
           setMessages(queryClient, convId, (prev) =>
-            prev.map((m) => m.id === assistantMsgId ? { ...m, content: fullText } : m),
+            prev.map((m) => (m.id === assistantMsgId ? { ...m, content: fullText } : m))
           );
         } else if (event.type === 'reasoning') {
           fullReasoning += event.content;
           setMessages(queryClient, convId, (prev) =>
-            prev.map((m) => m.id === assistantMsgId ? { ...m, reasoning: fullReasoning } : m),
+            prev.map((m) => (m.id === assistantMsgId ? { ...m, reasoning: fullReasoning } : m))
           );
         } else if (event.type === 'error') {
           setMessages(queryClient, convId, (prev) =>
             prev.map((m) =>
               m.id === assistantMsgId
                 ? { ...m, content: `Error: ${event.message}`, isStreaming: false }
-                : m,
-            ),
+                : m
+            )
           );
           return;
         } else if (event.type === 'done') {
@@ -157,7 +155,7 @@ export function useChatStream(conversationId?: string) {
       }
 
       setMessages(queryClient, convId, (prev) =>
-        prev.map((m) => m.id === assistantMsgId ? { ...m, isStreaming: false } : m),
+        prev.map((m) => (m.id === assistantMsgId ? { ...m, isStreaming: false } : m))
       );
 
       await fetch(`/api/conversations/${convId}/messages`, {
@@ -172,11 +170,16 @@ export function useChatStream(conversationId?: string) {
 
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
-    [queryClient, session?.user.id],
+    [queryClient, session?.user.id]
   );
 
   const handleSubmit = useCallback(
-    async (text: string, webSearch = false, thinking = false, images: string[] = []): Promise<void> => {
+    async (
+      text: string,
+      webSearch = false,
+      thinking = false,
+      images: string[] = []
+    ): Promise<void> => {
       let convId = conversationId;
       const isNewConversation = !convId;
 
@@ -223,7 +226,7 @@ export function useChatStream(conversationId?: string) {
         });
       }
     },
-    [conversationId, router, queryClient, streamAssistant],
+    [conversationId, router, queryClient, streamAssistant]
   );
 
   const handleEditMessage = useCallback(
@@ -261,7 +264,7 @@ export function useChatStream(conversationId?: string) {
 
       await streamAssistant(convId, { id: userMsgId, content: newText }, false, false);
     },
-    [conversationId, queryClient, streamAssistant],
+    [conversationId, queryClient, streamAssistant]
   );
 
   const handleRegenerateMessage = useCallback(
@@ -286,12 +289,16 @@ export function useChatStream(conversationId?: string) {
 
       await streamAssistant(
         convId,
-        { id: precedingUserMsg.id, content: precedingUserMsg.content, images: precedingUserMsg.images },
+        {
+          id: precedingUserMsg.id,
+          content: precedingUserMsg.content,
+          images: precedingUserMsg.images,
+        },
         false,
-        false,
+        false
       );
     },
-    [conversationId, queryClient, streamAssistant],
+    [conversationId, queryClient, streamAssistant]
   );
 
   return { handleSubmit, handleEditMessage, handleRegenerateMessage };
