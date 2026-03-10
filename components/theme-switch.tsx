@@ -2,6 +2,7 @@
 
 import { Laptop, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -13,9 +14,10 @@ import {
 
 export function ToggleTheme() {
   const { theme, resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    //eslint-disable-next-line
     setMounted(true);
   }, []);
 

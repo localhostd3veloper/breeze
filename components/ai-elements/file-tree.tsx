@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronRightIcon, FileIcon, FolderIcon, FolderOpenIcon } from 'lucide-react';
-import type { HTMLAttributes, ReactNode } from 'react';
+import type { HTMLAttributes, KeyboardEvent, ReactNode, SyntheticEvent } from 'react';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -185,7 +185,7 @@ export const FileTreeFile = ({
   }, [onSelect, path]);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
         onSelect?.(path);
       }
@@ -242,7 +242,7 @@ export const FileTreeName = ({ className, children, ...props }: FileTreeNameProp
 
 export type FileTreeActionsProps = HTMLAttributes<HTMLDivElement>;
 
-const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
+const stopPropagation = (e: SyntheticEvent) => e.stopPropagation();
 
 export const FileTreeActions = ({ className, children, ...props }: FileTreeActionsProps) => (
   // biome-ignore lint/a11y/noNoninteractiveElementInteractions: stopPropagation required for nested interactions

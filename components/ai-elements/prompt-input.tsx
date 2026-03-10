@@ -12,6 +12,7 @@ import type {
   FormEventHandler,
   HTMLAttributes,
   KeyboardEventHandler,
+  MouseEvent,
   PropsWithChildren,
   ReactNode,
   RefObject,
@@ -1025,7 +1026,7 @@ export const PromptInputSubmit = ({
   }
 
   const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
+    (e: MouseEvent<HTMLButtonElement>) => {
       if (isGenerating && onStop) {
         e.preventDefault();
         onStop();

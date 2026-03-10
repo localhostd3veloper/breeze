@@ -47,12 +47,12 @@ function HighlightText({ text, query }: { text: string; query: string }) {
     <>
       {segmentText(text, query).map((seg, i) =>
         seg.highlighted ? (
-          <mark
+          <span
             key={i}
             className="text-foreground rounded-[2px] bg-yellow-300/60 dark:bg-yellow-500/40"
           >
             {seg.text}
-          </mark>
+          </span>
         ) : (
           <span key={i}>{seg.text}</span>
         )

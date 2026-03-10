@@ -2,7 +2,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { ComponentProps, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { signupUser } from '@/lib/actions/auth';
 import { cn } from '@/lib/utils';
 import { type SignupInput, signupSchema } from '@/lib/validations/auth';
 
-export function SignupForm({ className, ...props }: React.ComponentProps<'div'>) {
+export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const router = useRouter();

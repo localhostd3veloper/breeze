@@ -2,7 +2,7 @@
 
 import { useControllableState } from '@radix-ui/react-use-controllable-state';
 import type { Experimental_TranscriptionResult as TranscriptionResult } from 'ai';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps, MouseEvent, ReactNode } from 'react';
 import { createContext, useCallback, useContext, useMemo } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -85,7 +85,7 @@ export const TranscriptionSegment = ({
   const isPast = currentTime >= segment.endSecond;
 
   const handleClick = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
+    (event: MouseEvent<HTMLButtonElement>) => {
       if (onSeek) {
         onSeek(segment.startSecond);
       }

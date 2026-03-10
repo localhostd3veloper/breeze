@@ -1,8 +1,8 @@
 'use client';
-
 import { PanelLeftIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { ComponentProps } from 'react';
 
 import { NavConversations } from '@/components/nav-conversations';
 import { NavMain } from '@/components/nav-main';
@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   const { open, isMobile, toggleSidebar } = useSidebar();
   const router = useRouter();
 

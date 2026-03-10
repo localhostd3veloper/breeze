@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDownIcon, PaperclipIcon } from 'lucide-react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -194,7 +194,7 @@ export const QueueSectionTrigger = ({
 export type QueueSectionLabelProps = ComponentProps<'span'> & {
   count?: number;
   label: string;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
 };
 
 export const QueueSectionLabel = ({

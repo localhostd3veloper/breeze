@@ -7,7 +7,7 @@ import {
   CircleIcon,
   XCircleIcon,
 } from 'lucide-react';
-import type { ComponentProps, HTMLAttributes } from 'react';
+import type { ComponentProps, HTMLAttributes, ReactNode } from 'react';
 import { createContext, useContext, useMemo } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -299,7 +299,7 @@ const statusStyles: Record<TestStatus, string> = {
   skipped: 'text-yellow-600 dark:text-yellow-400',
 };
 
-const statusIcons: Record<TestStatus, React.ReactNode> = {
+const statusIcons: Record<TestStatus, ReactNode> = {
   failed: <XCircleIcon className="size-4" />,
   passed: <CheckCircle2Icon className="size-4" />,
   running: <CircleDotIcon className="size-4 animate-pulse" />,

@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDownIcon } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ChangeEvent, ComponentProps, KeyboardEvent, ReactNode } from 'react';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -129,13 +129,13 @@ export const WebPreviewUrl = ({ value, onChange, onKeyDown, ...props }: WebPrevi
     setInputValue(url);
   }
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
     onChange?.(event);
   };
 
   const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLInputElement>) => {
+    (event: KeyboardEvent<HTMLInputElement>) => {
       if (event.key === 'Enter') {
         const target = event.target as HTMLInputElement;
         setUrl(target.value);

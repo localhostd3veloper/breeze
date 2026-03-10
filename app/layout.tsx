@@ -76,6 +76,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { ReactNode } from 'react';
+
 import Providers from '@/components/providers';
 import ServiceWorkerRegistration from '@/components/service-worker-registration';
 import dbConnect from '@/lib/db/mongodb';
@@ -83,7 +85,7 @@ import dbConnect from '@/lib/db/mongodb';
 export default async function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   await dbConnect();
   return (

@@ -12,7 +12,7 @@ import {
   VenusAndMarsIcon,
   VenusIcon,
 } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps, MouseEvent, ReactNode } from 'react';
 import { createContext, useCallback, useContext, useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -435,7 +435,7 @@ export const VoiceSelectorPreview = ({
   ...props
 }: VoiceSelectorPreviewProps) => {
   const handleClick = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
+    (event: MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
       onClick?.(event);
       onPlay?.();

@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckIcon, CopyIcon, FileIcon, GitCommitIcon, MinusIcon, PlusIcon } from 'lucide-react';
-import type { ComponentProps, HTMLAttributes } from 'react';
+import type { ComponentProps, HTMLAttributes, KeyboardEvent, MouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -118,8 +118,8 @@ export const CommitTimestamp = ({ date, className, children, ...props }: CommitT
 
 export type CommitActionsProps = HTMLAttributes<HTMLDivElement>;
 
-const handleActionsClick = (e: React.MouseEvent) => e.stopPropagation();
-const handleActionsKeyDown = (e: React.KeyboardEvent) => e.stopPropagation();
+const handleActionsClick = (e: MouseEvent) => e.stopPropagation();
+const handleActionsKeyDown = (e: KeyboardEvent) => e.stopPropagation();
 
 export const CommitActions = ({ className, children, ...props }: CommitActionsProps) => (
   // biome-ignore lint/a11y/noNoninteractiveElementInteractions: stopPropagation required for nested interactions

@@ -11,7 +11,7 @@ import {
   XIcon,
 } from 'lucide-react';
 import Image from 'next/image';
-import type { ComponentProps, HTMLAttributes, ReactNode } from 'react';
+import type { ComponentProps, HTMLAttributes, MouseEvent, ReactNode } from 'react';
 import { createContext, useCallback, useContext, useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -308,7 +308,7 @@ export const AttachmentRemove = ({
   const { onRemove, variant } = useAttachmentContext();
 
   const handleClick = useCallback(
-    (e: React.MouseEvent) => {
+    (e: MouseEvent) => {
       e.stopPropagation();
       onRemove?.();
     },

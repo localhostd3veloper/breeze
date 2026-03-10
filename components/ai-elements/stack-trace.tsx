@@ -2,7 +2,7 @@
 
 import { useControllableState } from '@radix-ui/react-use-controllable-state';
 import { AlertTriangleIcon, CheckIcon, ChevronDownIcon, CopyIcon } from 'lucide-react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, KeyboardEvent, MouseEvent } from 'react';
 import {
   createContext,
   memo,
@@ -260,8 +260,8 @@ export const StackTraceErrorMessage = memo(
 
 export type StackTraceActionsProps = ComponentProps<'div'>;
 
-const handleActionsClick = (e: React.MouseEvent) => e.stopPropagation();
-const handleActionsKeyDown = (e: React.KeyboardEvent) => {
+const handleActionsClick = (e: MouseEvent) => e.stopPropagation();
+const handleActionsKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'Enter' || e.key === ' ') {
     e.stopPropagation();
   }
