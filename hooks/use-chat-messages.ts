@@ -2,13 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 
-import type { ChatMessageDTO } from '@/lib/types/conversation';
-
-async function fetchMessages(conversationId: string): Promise<ChatMessageDTO[]> {
-  const res = await fetch(`/api/conversations/${conversationId}/messages`);
-  if (!res.ok) throw new Error(`${res.status}`);
-  return res.json();
-}
+import { fetchMessages } from '@/lib/services/chat-messages';
 
 export function useChatMessages(conversationId: string) {
   return useQuery({

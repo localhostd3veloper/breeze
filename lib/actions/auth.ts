@@ -1,31 +1,13 @@
 'use server';
 
 import { signUpAction } from '@/app/actions/auth';
-import { loginSchema, signupSchema } from '@/lib/validations/auth';
+import { signupSchema } from '@/lib/validations/auth';
 
 type ActionState = {
   success?: boolean;
   message?: string;
   error?: string;
 } | null;
-
-export async function loginUser(prevState: ActionState, formData: FormData) {
-  try {
-    const data = Object.fromEntries(formData.entries());
-    const validatedData = loginSchema.safeParse(data);
-
-    if (!validatedData.success) {
-      return { error: 'Invalid fields' };
-    }
-
-    // signIn is a client-side function so it cannot be called in a server action directly.
-    // The LoginForm component calls signIn("credentials", ...) from the client.
-    // This action is a stub to satisfy the import in login-form.tsx.
-    return { success: true, message: 'Redirecting...' };
-  } catch {
-    return { error: 'Something went wrong. Please try again.' };
-  }
-}
 
 export async function signupUser(prevState: ActionState, formData: FormData) {
   try {
