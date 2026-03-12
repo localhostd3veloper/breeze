@@ -23,7 +23,6 @@ const ConversationSchema: Schema = new Schema(
   }
 );
 
-// Index to efficiently list a specific user's conversations, typically ordered by most recent
 ConversationSchema.index({ user: 1, updatedAt: -1 });
 
 export default mongoose.models.Conversation ||

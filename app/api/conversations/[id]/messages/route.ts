@@ -72,7 +72,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ...(toolCallId && { toolCallId }),
   });
 
-  // Bump conversation updatedAt so it surfaces at the top of the list
   await Conversation.findByIdAndUpdate(id, { updatedAt: new Date() });
 
   const data: ChatMessageDTO = {

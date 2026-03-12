@@ -86,7 +86,6 @@ export function useChatStream(conversationId?: string) {
         { id: assistantMsgId, role: 'assistant', content: '', createdAt: now, isStreaming: true },
       ]);
 
-      // Build history: everything except the current user message and the new assistant placeholder
       const history = getMessages(queryClient, convId)
         .filter((m) => m.id !== userMsg.id && m.id !== assistantMsgId && !m.isStreaming)
         .map((m) => ({ role: m.role, content: m.content }));
@@ -207,7 +206,6 @@ export function useChatStream(conversationId?: string) {
 
       setMessages(queryClient, convId, (prev) => [...prev, userMsg]);
 
-      // Save user message to DB (fire-and-forget)
       fetch(`/api/conversations/${convId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -238,14 +236,12 @@ export function useChatStream(conversationId?: string) {
       const msgIndex = allMessages.findIndex((m) => m.id === messageId);
       if (msgIndex === -1) return;
 
-      // Trim cache: remove the edited message and everything after
       setMessages(queryClient, convId, () => allMessages.slice(0, msgIndex));
 
       await fetch(`/api/conversations/${convId}/messages?fromId=${messageId}`, {
         method: 'DELETE',
       });
 
-      // Add the edited message as a new user message
       const userMsgId = crypto.randomUUID();
       const userMsg: ChatMessageDTO = {
         id: userMsgId,
@@ -276,11 +272,9 @@ export function useChatStream(conversationId?: string) {
       const msgIndex = allMessages.findIndex((m) => m.id === messageId);
       if (msgIndex === -1) return;
 
-      // Find the user message that prompted this assistant response
       const precedingUserMsg = allMessages.slice(0, msgIndex).findLast((m) => m.role === 'user');
       if (!precedingUserMsg) return;
 
-      // Remove only the assistant message and everything after it
       setMessages(queryClient, convId, () => allMessages.slice(0, msgIndex));
 
       await fetch(`/api/conversations/${convId}/messages?fromId=${messageId}`, {

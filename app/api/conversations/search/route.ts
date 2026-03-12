@@ -38,12 +38,10 @@ export async function GET(req: Request) {
 
   const userId = new mongoose.Types.ObjectId(session.user.id);
 
-  // Split into individual terms — all must appear (fuzzy AND logic)
   const terms = q.split(/\s+/).filter(Boolean).map(escapeRegex);
   const termRegexes = terms.map((t) => new RegExp(t, 'i'));
   const anchorRegex = termRegexes[0]; // used for snippet centering
 
-  // For MongoDB: $and of all term regexes
   const titleFilter =
     terms.length === 1
       ? { title: termRegexes[0] }

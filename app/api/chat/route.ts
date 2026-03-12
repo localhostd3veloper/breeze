@@ -1,6 +1,5 @@
 import { type NextRequest } from 'next/server';
 
-// FastAPI already emits typed NDJSON events — this route is a pure passthrough.
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
@@ -27,7 +26,7 @@ export async function POST(req: NextRequest) {
       {
         status: upstream.status,
         headers: { 'Content-Type': 'application/x-ndjson' },
-      },
+      }
     );
   }
 

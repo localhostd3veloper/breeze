@@ -1,12 +1,11 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
-// Interface to match AI SDK's tool call structure
 export interface IToolCall {
-  id: string; // Tool call ID
-  type: string; // usually 'function'
+  id: string;
+  type: string;
   function: {
     name: string;
-    arguments: string; // JSON string of arguments
+    arguments: string;
   };
 }
 
@@ -14,7 +13,7 @@ export interface IChatMessage extends Document {
   conversationId: Types.ObjectId;
   role: 'system' | 'user' | 'assistant' | 'data' | 'tool';
   content: string;
-  reasoning?: string; // e.g. for DeepSeek-R1 <reasoning> output
+  reasoning?: string;
   images?: string[]; // Array of base64 strings or URLs
   toolCalls?: IToolCall[];
   toolCallId?: string; // If role is 'tool', this links back to the original tool request
@@ -37,7 +36,6 @@ const ChatMessageSchema: Schema = new Schema(
     reasoning: { type: String },
     images: [{ type: String }],
 
-    // Storing complete tool call representations for assistant messages
     toolCalls: [
       {
         id: { type: String, required: true },
@@ -49,15 +47,13 @@ const ChatMessageSchema: Schema = new Schema(
       },
     ],
 
-    // For tool messages (results of tool calls)
     toolCallId: { type: String },
   },
   {
-    timestamps: { createdAt: true, updatedAt: false }, // Messages usually aren't updated
+    timestamps: { createdAt: true, updatedAt: false },
   }
 );
 
-// Index for efficiently fetching a conversation's messages in chronological order
 ChatMessageSchema.index({ conversationId: 1, createdAt: 1 });
 
 export default mongoose.models.ChatMessage ||

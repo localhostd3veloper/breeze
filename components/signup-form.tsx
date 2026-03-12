@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ComponentProps, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -42,8 +43,8 @@ export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
     if (result.error) {
       setError(result.error);
     } else {
+      toast.success('Account created successfully! Redirecting to login...');
       setSuccess(true);
-      // Redirect to login after a short delay
       setTimeout(() => router.push('/login'), 1500);
     }
   };

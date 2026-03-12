@@ -20,20 +20,16 @@ interface ShortcutOptions {
 export function useCtrlShortcut(
   key: string,
   handler: KeyHandler,
-  options: ShortcutOptions = { preventDefault: true },
+  options: ShortcutOptions = { preventDefault: true }
 ) {
   const handlerRef = useRef(handler);
 
-  // Keep handler ref up-to-date to avoid stale closures
   useEffect(() => {
     handlerRef.current = handler;
   }, [handler]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Check if Ctrl (Windows/Linux) or Meta/Cmd (Mac) is pressed
-      // You can adjust this to strictly require Ctrl or Cmd based on preference.
-      // Usually, web apps map "Ctrl" to Cmd on Mac.
       const isModifierPressed = e.ctrlKey || e.metaKey;
       const requiresShift = !!options.shift;
       const requiresAlt = !!options.alt;

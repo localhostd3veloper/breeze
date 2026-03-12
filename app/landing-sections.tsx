@@ -25,8 +25,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
-// ─── Data ────────────────────────────────────────────────────────────────────
-
 const coreFeatures: { icon: LucideIcon; title: string; description: string }[] = [
   {
     icon: Lock,
@@ -136,8 +134,6 @@ const steps = [
   },
 ];
 
-// ─── Animation variants ───────────────────────────────────────────────────────
-
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
   show: { opacity: 1, y: 0 },
@@ -154,8 +150,6 @@ const staggerContainer = (stagger = 0.08) => ({
 });
 
 const viewport = { once: false, margin: '-80px' } as const;
-
-// ─── Shared heading block ────────────────────────────────────────────────────
 
 function SectionHeading({
   badge,
@@ -183,8 +177,6 @@ function SectionHeading({
     </motion.div>
   );
 }
-
-// ─── Sections ────────────────────────────────────────────────────────────────
 
 export function CoreFeaturesSection() {
   return (
