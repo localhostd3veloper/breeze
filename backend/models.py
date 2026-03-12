@@ -1,22 +1,19 @@
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class HistoryMessage(BaseModel):
-    role: str  # "user" or "assistant"
+    role: Literal["user", "assistant"]
     content: str
 
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(min_length=1)
     thinking: bool = False
     history: list[HistoryMessage] = []
     web_search: bool = False
     images: list[str] = []
-
-
-class ChatResponse(BaseModel):
-    response: str
-    model: str
 
 
 class SummarizeRequest(BaseModel):

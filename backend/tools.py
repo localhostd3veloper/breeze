@@ -1,7 +1,9 @@
 import json
-from typing import Any
+from typing import Any, Callable
 
-from config import logger, tavily_client
+from tavily import TavilyClient
+
+from settings import logger
 
 TOOLS: list[dict[str, Any]] = [
     {
@@ -24,14 +26,22 @@ TOOLS: list[dict[str, Any]] = [
 ]
 
 
-def run_web_search(query: str) -> str:
+def _run_web_search(tavily: TavilyClient, args: dict[str, Any]) -> str:
+    query = args["query"]
     logger.info("Tavily search: %r", query)
-    result = tavily_client.search(query=query, max_results=5)
+    result = tavily.search(query=query, max_results=5)
     logger.info("Tavily returned %d results", len(result.get("results", [])))
     return json.dumps(result)
 
 
-def dispatch_tool(name: str, args: dict[str, Any]) -> str:
-    if name == "web_search":
-        return run_web_search(args["query"])
-    return json.dumps({"error": f"unknown tool: {name}"})
+_REGISTRY: dict[str, Callable[[TavilyClient, dict[str, Any]], str]] = {
+    "web_search": _run_web_search,
+}
+
+
+def dispatch_tool(tavily: TavilyClient, name: str, args: dict[str, Any]) -> str:
+    fn = _REGISTRY.get(name)
+    if fn is None:
+        logger.warning("Unknown tool requested: %r", name)
+        return json.dumps({"error": f"unknown tool: {name}"})
+    return fn(tavily, args)

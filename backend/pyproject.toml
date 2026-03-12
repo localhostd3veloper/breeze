@@ -1,7 +1,7 @@
 [project]
-name = "cloudflare"
+name = "breeze-backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "Backend for Breeze, where AI agents are orchestrated and managed."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

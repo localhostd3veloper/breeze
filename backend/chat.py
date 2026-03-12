@@ -4,10 +4,17 @@ from datetime import datetime, timezone
 from typing import Any, Iterator
 
 from langfuse import propagate_attributes
+from langfuse.openai import OpenAI  # type: ignore[attr-defined]
+from tavily import TavilyClient
 
-from config import logger, openai_client
-from models import HistoryMessage
+from models import HistoryMessage, SummarizeRequest
+from models_config import MODELS
+from settings import logger
 from tools import TOOLS, dispatch_tool
+
+
+def _emit(event: dict) -> str:
+    return json.dumps(event, ensure_ascii=False) + "\n"
 
 
 def _safe_json(s: str | None) -> dict[str, Any]:
@@ -18,12 +25,8 @@ def _safe_json(s: str | None) -> dict[str, Any]:
         return {}
 
 
-def _emit(event: dict) -> str:
-    return json.dumps(event, ensure_ascii=False) + "\n"
-
-
 class _ReasoningParser:
-    """Splits streaming text into (text, reasoning) by parsing <think>...</think> tags."""
+    """Splits streaming text into (text, reasoning) by parsing <think>…</think> tags."""
 
     def __init__(self) -> None:
         self._buffer = ""
@@ -61,7 +64,6 @@ class _ReasoningParser:
         return text_out, reasoning_out
 
     def flush(self) -> tuple[str, str]:
-        """Flush remaining buffer at end of stream."""
         text_out = "" if self._in_think else self._buffer
         reasoning_out = self._buffer if self._in_think else ""
         self._buffer = ""
@@ -72,7 +74,7 @@ def _system_prompt() -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     return (
         f"The current date and time is {now}. "
-        "You are Breeze, a witty and helpful AI assistant. Answer clearly and concisely."
+        "You are Breeze, a witty and helpful AI assistant. Answer clearly and concisely. "
         "Do not discuss your underlying technology or creators. "
         "If asked, say you are Breeze. Refuse harmful or illegal requests. "
         "Use the web_search tool when the user asks about recent events, news, or anything "
@@ -89,10 +91,7 @@ def _build_messages(
     if images:
         user_content: Any = [{"type": "text", "text": message}]
         for img in images:
-            if img.startswith("http://") or img.startswith("https://"):
-                url = img
-            else:
-                url = f"data:image/jpeg;base64,{img}"
+            url = img if img.startswith(("http://", "https://")) else f"data:image/jpeg;base64,{img}"
             user_content.append({"type": "image_url", "image_url": {"url": url}})
     else:
         user_content = message
@@ -104,7 +103,45 @@ def _build_messages(
     ]
 
 
+def _stream_chunks(stream) -> Iterator[str]:
+    """Yield NDJSON text/reasoning events from an OpenAI streaming response.
+
+    Handles both native reasoning (delta.reasoning) and tag-based <think>…</think> parsing.
+    Does NOT emit a 'done' event — callers are responsible for that.
+    """
+    parser = _ReasoningParser()
+    native_reasoning = False
+
+    for chunk in stream:
+        delta = chunk.choices[0].delta
+
+        reasoning = getattr(delta, "reasoning", None)
+        if reasoning:
+            native_reasoning = True
+            yield _emit({"type": "reasoning", "content": reasoning})
+
+        if delta.content:
+            if native_reasoning:
+                yield _emit({"type": "text", "content": delta.content})
+            else:
+                text, rsn = parser.feed(delta.content)
+                if rsn:
+                    yield _emit({"type": "reasoning", "content": rsn})
+                if text:
+                    yield _emit({"type": "text", "content": text})
+
+    if not native_reasoning:
+        text, rsn = parser.flush()
+        if rsn:
+            yield _emit({"type": "reasoning", "content": rsn})
+        if text:
+            yield _emit({"type": "text", "content": text})
+
+
+
 def stream_response(
+    client: OpenAI,
+    tavily: TavilyClient,
     model: str,
     message: str,
     history: list[HistoryMessage] | None = None,
@@ -116,6 +153,7 @@ def stream_response(
 ) -> Iterator[str]:
     try:
         messages = list(_build_messages(message, history, images))
+
         create_kwargs: dict[str, Any] = {
             "metadata": {"model": model},
             "model": model,
@@ -124,28 +162,21 @@ def stream_response(
             "max_tokens": 4096 if thinking else 2048,
             "temperature": 0.3,
             "user": user_id,
+            "extra_body": {"enable_thinking": True, "thinking_budget": 1024, "verbosity": "low"}
+            if thinking
+            else {"verbosity": "low"},
         }
-        if thinking:
-            create_kwargs["extra_body"] = {
-                "enable_thinking": True,
-                "thinking_budget": 1024,
-                "verbosity": "low",
-            }
-        else:
-            create_kwargs["extra_body"] = {"verbosity": "low"}
-
         if web_search:
             create_kwargs["tools"] = TOOLS  # type: ignore[assignment]
-        with propagate_attributes(
-            user_id=user_id, session_id=session_id, trace_name="chat.stream_responses"
-        ):
-            stream = openai_client.with_options(timeout=60).chat.completions.create(**create_kwargs)  # type: ignore[call-overload]
 
-        # Stream content directly, accumulating any tool calls in parallel.
+        with propagate_attributes(user_id=user_id, session_id=session_id, trace_name="chat.stream_responses"):
+            stream = client.with_options(timeout=60).chat.completions.create(**create_kwargs)  # type: ignore[call-overload]
+
+        # First pass: stream content to client and accumulate any tool calls.
         tool_calls_acc: dict[int, dict[str, Any]] = {}
         assistant_chunks: list[str] = []
         parser = _ReasoningParser()
-        native_reasoning = False  # True once we see delta.reasoning; disables _ReasoningParser
+        native_reasoning = False
 
         for chunk in stream:
             delta = chunk.choices[0].delta
@@ -154,11 +185,7 @@ def stream_response(
                 for tc in delta.tool_calls:
                     entry = tool_calls_acc.setdefault(
                         tc.index,
-                        {
-                            "id": tc.id or "",
-                            "type": tc.type or "function",
-                            "function": {"name": "", "arguments": ""},
-                        },
+                        {"id": tc.id or "", "type": tc.type or "function", "function": {"name": "", "arguments": ""}},
                     )
                     if tc.id:
                         entry["id"] = tc.id
@@ -168,11 +195,10 @@ def stream_response(
                         if tc.function.arguments:
                             entry["function"]["arguments"] += tc.function.arguments
 
-            # Qwen thinking models expose reasoning via delta.reasoning.
-            thinking_chunk = getattr(delta, "reasoning", None)
-            if thinking_chunk and not tool_calls_acc:
+            reasoning = getattr(delta, "reasoning", None)
+            if reasoning and not tool_calls_acc:
                 native_reasoning = True
-                yield _emit({"type": "reasoning", "content": thinking_chunk})
+                yield _emit({"type": "reasoning", "content": reasoning})
 
             if delta.content:
                 assistant_chunks.append(delta.content)
@@ -180,24 +206,24 @@ def stream_response(
                     if native_reasoning:
                         yield _emit({"type": "text", "content": delta.content})
                     else:
-                        text_out, reasoning_out = parser.feed(delta.content)
-                        if reasoning_out:
-                            yield _emit({"type": "reasoning", "content": reasoning_out})
-                        if text_out:
-                            yield _emit({"type": "text", "content": text_out})
+                        text, rsn = parser.feed(delta.content)
+                        if rsn:
+                            yield _emit({"type": "reasoning", "content": rsn})
+                        if text:
+                            yield _emit({"type": "text", "content": text})
 
         if not native_reasoning:
-            text_out, reasoning_out = parser.flush()
-            if reasoning_out:
-                yield _emit({"type": "reasoning", "content": reasoning_out})
-            if text_out:
-                yield _emit({"type": "text", "content": text_out})
+            text, rsn = parser.flush()
+            if rsn:
+                yield _emit({"type": "reasoning", "content": rsn})
+            if text:
+                yield _emit({"type": "text", "content": text})
 
         if not tool_calls_acc or not web_search:
             yield _emit({"type": "done"})
             return
 
-        # Execute tool calls and stream the final response.
+        # --- Tool execution (parallel) ---
         tool_calls_list = [tool_calls_acc[i] for i in sorted(tool_calls_acc)]
         messages.append(
             {
@@ -209,56 +235,47 @@ def stream_response(
 
         with ThreadPoolExecutor() as pool:
             futures = {
-                pool.submit(dispatch_tool, tc["function"]["name"], _safe_json(tc["function"]["arguments"])): tc
+                pool.submit(dispatch_tool, tavily, tc["function"]["name"], _safe_json(tc["function"]["arguments"])): tc
                 for tc in tool_calls_list
             }
-            tool_results: dict[str, str] = {}
-            for f in as_completed(futures):
-                tc = futures[f]
-                tool_results[tc["id"]] = f.result()
+            tool_results: dict[str, str] = {futures[f]["id"]: f.result() for f in as_completed(futures)}
 
         for tc in tool_calls_list:
-            messages.append(
-                {"role": "tool", "tool_call_id": tc["id"], "content": tool_results[tc["id"]]}
-            )
+            messages.append({"role": "tool", "tool_call_id": tc["id"], "content": tool_results[tc["id"]]})
 
-        with propagate_attributes(
-            user_id=user_id, session_id=session_id, trace_name="tools.stream_responses"
-        ):
-            final_stream = openai_client.with_options(timeout=60).chat.completions.create(  # type: ignore[call-overload, arg-type]
+        # Second pass: stream final response incorporating tool results.
+        with propagate_attributes(user_id=user_id, session_id=session_id, trace_name="tools.stream_responses"):
+            final_stream = client.with_options(timeout=60).chat.completions.create(  # type: ignore[call-overload, arg-type]
                 metadata={"model": model},
                 model=model,
                 messages=messages,  # type: ignore[arg-type]
                 stream=True,
             )
-        final_parser = _ReasoningParser()
-        final_native_reasoning = False
-        for chunk in final_stream:
-            final_delta = chunk.choices[0].delta
-            thinking_chunk = getattr(final_delta, "reasoning", None)
-            if thinking_chunk:
-                final_native_reasoning = True
-                yield _emit({"type": "reasoning", "content": thinking_chunk})
-            content = final_delta.content or ""
-            if content:
-                if final_native_reasoning:
-                    yield _emit({"type": "text", "content": content})
-                else:
-                    text_out, reasoning_out = final_parser.feed(content)
-                    if reasoning_out:
-                        yield _emit({"type": "reasoning", "content": reasoning_out})
-                    if text_out:
-                        yield _emit({"type": "text", "content": text_out})
 
-        if not final_native_reasoning:
-            text_out, reasoning_out = final_parser.flush()
-            if reasoning_out:
-                yield _emit({"type": "reasoning", "content": reasoning_out})
-            if text_out:
-                yield _emit({"type": "text", "content": text_out})
-
+        yield from _stream_chunks(final_stream)
         yield _emit({"type": "done"})
 
     except Exception as e:
         logger.error("stream_response error: %s", e)
         yield _emit({"type": "error", "message": str(e)})
+
+
+_SUMMARIZE_PROMPT = (
+    "You are a title generator. Given a conversation, output a short title (4 words or fewer) "
+    "that captures the main topic. Output only the title — no quotes, no punctuation at the end."
+)
+
+
+def summarize(client: OpenAI, body: SummarizeRequest) -> str:
+    """Return a short title for the given conversation history."""
+    conversation = "\n".join(f"{m.role.upper()}: {m.content}" for m in body.history)
+    resp = client.chat.completions.create(
+        model=MODELS["summarize"],
+        messages=[
+            {
+                "role": "user",
+                "content": f"{_SUMMARIZE_PROMPT}\n\nConversation:\n{conversation}",
+            }
+        ],  # type: ignore[arg-type]
+    )
+    return (resp.choices[0].message.content or "").strip()
