@@ -197,6 +197,22 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Radix locks scrolling while a dropdown, popover or dialog is open. Without
+     a reserved gutter the scrollbar disappears on open and the whole page
+     reflows sideways -- visible as a jump in the fixed header when the theme
+     menu opens. Reserving the space permanently means locking changes nothing. */
+  html {
+    scrollbar-gutter: stable;
+  }
+  /* ...and react-remove-scroll (which Radix uses for that lock) then adds a
+     margin to make up for the scrollbar it believes it removed. With the gutter
+     reserved nothing was removed, so that compensation is the shift: the body
+     box narrows by the scrollbar width and centred content slides sideways.
+     `data-scroll-locked` is only present while a lock is active. */
+  body[data-scroll-locked] {
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+  }
   body {
     @apply bg-background text-foreground;
   }

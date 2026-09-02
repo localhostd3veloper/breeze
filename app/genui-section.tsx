@@ -195,6 +195,7 @@ export function GenerativeUISection() {
           eyebrow="Generative UI"
           title="Some answers are better drawn."
           lede="When a reply is really a trend, a table or a shortlist, Breeze writes the numbers for one and the app draws it. Every example below is a live widget, not a picture -- pick one to see the spec that produced it."
+          link={{ href: '/docs/generative-ui', label: 'How the grammar works' }}
         />
 
         <motion.div variants={rise} className="mt-14">

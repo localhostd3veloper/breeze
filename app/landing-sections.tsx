@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 
@@ -39,20 +40,41 @@ export const group = (stagger = 0.06) => ({
 
 export const viewport = { once: true, margin: '-60px' } as const;
 
+/** The one way a section points at the page that documents it. */
+export function DocsLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="text-primary eyebrow group/link hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
+    >
+      {children}
+      <ArrowRight className="size-3.5 transition-transform group-hover/link:translate-x-0.5" />
+    </Link>
+  );
+}
+
 export function SectionHead({
   eyebrow,
   title,
   lede,
+  link,
 }: {
   eyebrow: string;
   title: string;
   lede?: string;
+  /** Sends the reader to the page that documents this section in full. */
+  link?: { href: string; label: string };
 }) {
   return (
     <motion.div variants={rise} className="max-w-2xl">
       <p className="eyebrow">{eyebrow}</p>
       <h2 className="type-display mt-4 text-[clamp(1.9rem,4.6vw,3.1rem)]">{title}</h2>
       {lede && <p className="text-muted-foreground mt-4 leading-relaxed">{lede}</p>}
+      {link && (
+        <p className="mt-6">
+          <DocsLink href={link.href}>{link.label}</DocsLink>
+        </p>
+      )}
     </motion.div>
   );
 }
@@ -75,13 +97,19 @@ const inside: Node[] = [
   { icon: HardDrive, label: 'Transcripts', detail: 'your MongoDB' },
 ];
 
-const outside: { label: string; detail: string; marker: string }[] = [
+const outside: { label: string; detail: string; marker: string; href: string }[] = [
   {
     label: 'Web search',
     detail: 'Tavily, when a reply needs the live web',
     marker: 'Off by default',
+    href: '/docs/web-search',
   },
-  { label: 'Tracing', detail: 'Langfuse, if you set the keys', marker: 'Unset by default' },
+  {
+    label: 'Tracing',
+    detail: 'Langfuse, if you set the keys',
+    marker: 'Unset by default',
+    href: '/docs/langfuse',
+  },
 ];
 
 export function BoundarySection() {
@@ -142,27 +170,45 @@ export function BoundarySection() {
               The internet
             </span>
             <ul className="grid sm:grid-cols-2">
-              {outside.map(({ label, detail, marker }) => (
+              {outside.map(({ label, detail, marker, href }) => (
                 <li
                   key={label}
-                  className="border-hairline flex items-start justify-between gap-4 border-t p-5 first:border-t-0 sm:border-t-0 sm:border-l sm:first:border-l-0"
+                  className="border-hairline border-t first:border-t-0 sm:border-t-0 sm:border-l sm:first:border-l-0"
                 >
-                  <div className="min-w-0">
-                    <p className="text-muted-foreground text-sm font-medium">{label}</p>
-                    <p className="readout text-muted-foreground mt-1 text-xs">{detail}</p>
-                  </div>
-                  <span className="border-brass/40 text-brass eyebrow shrink-0 border px-2 py-1">
-                    {marker}
-                  </span>
+                  {/* Each crossing links to the page that explains exactly
+                      what it sends and how to turn it off. */}
+                  <Link
+                    href={href}
+                    className="group hover:bg-card/60 flex items-start justify-between gap-4 p-5 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-muted-foreground group-hover:text-foreground text-sm font-medium transition-colors">
+                        {label}
+                        <ArrowRight
+                          aria-hidden
+                          className="ml-1.5 inline size-3 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100"
+                        />
+                      </p>
+                      <p className="readout text-muted-foreground mt-1 text-xs">{detail}</p>
+                    </div>
+                    <span className="border-brass/40 text-brass eyebrow shrink-0 border px-2 py-1">
+                      {marker}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          <p className="text-muted-foreground/80 mt-10 max-w-xl text-sm leading-relaxed">
-            Nothing else is called. Conversation titles are written by the same local model that
-            writes the replies, not by a hosted one.
-          </p>
+          <div className="mt-10 max-w-xl">
+            <p className="text-muted-foreground/80 text-sm leading-relaxed">
+              Nothing else is called. Conversation titles are written by the same local model that
+              writes the replies, not by a hosted one.
+            </p>
+            <p className="mt-5">
+              <DocsLink href="/docs/security">Read the security guarantees</DocsLink>
+            </p>
+          </div>
         </motion.div>
       </div>
     </motion.section>
@@ -173,61 +219,71 @@ export function BoundarySection() {
 /* Capabilities -- a hairline index, not a wall of rounded cards        */
 /* ------------------------------------------------------------------ */
 
-const capabilities: { icon: LucideIcon; title: string; description: string }[] = [
+const capabilities: { icon: LucideIcon; title: string; description: string; href: string }[] = [
   {
     icon: Brain,
     title: 'Thinking, shown',
+    href: '/docs/features#thinking',
     description:
       'Watch the model reason before it answers. The chain of thought collapses out of the way once you have read it.',
   },
   {
     icon: Globe,
     title: 'Web search',
+    href: '/docs/web-search',
     description:
       'Switch it on for a reply that needs the live web. Sources come back cited. Off until you ask.',
   },
   {
     icon: ImageIcon,
     title: 'Images',
+    href: '/docs/features#images',
     description: 'Drop an image into the thread and the model reads it alongside your text.',
   },
   {
     icon: Edit3,
     title: 'Edit and replay',
+    href: '/docs/features#in-the-transcript',
     description:
       'Change a message you already sent and the thread runs again from that point. Regenerate any reply.',
   },
   {
     icon: Search,
     title: 'Search everything',
+    href: '/docs/features#conversation-management',
     description:
       'Find any past chat by title or by something said inside it. Matches are highlighted in place.',
   },
   {
     icon: Pin,
     title: 'Pin what matters',
+    href: '/docs/features#conversation-management',
     description: 'Keep the threads you are living in at the top of the sidebar.',
   },
   {
     icon: Wand2,
     title: 'Titles that write themselves',
+    href: '/docs/features#conversation-management',
     description:
       'Each thread is named after your first message. Rename or regenerate it from the sidebar.',
   },
   {
     icon: Download,
     title: 'Export as Markdown',
+    href: '/docs/features#in-the-transcript',
     description: 'Take any conversation out as a clean Markdown file. It is your transcript.',
   },
   {
     icon: Smartphone,
     title: 'Installs like an app',
+    href: '/docs/getting-started',
     description:
       'Add Breeze to a phone or dock it in the taskbar. It runs from its own window against your own server.',
   },
   {
     icon: Layers,
     title: 'Any Ollama model',
+    href: '/docs/architecture#model-selection',
     description: 'Swap models in one config file. If Ollama can pull it, Breeze can talk to it.',
   },
 ];
@@ -245,27 +301,39 @@ export function CapabilitiesSection() {
         <SectionHead
           eyebrow="Instruments"
           title="Everything you reach for, and nothing you don't."
+          link={{ href: '/docs/features', label: 'The full feature guide' }}
         />
 
         <div className="mt-14 grid md:grid-cols-2">
-          {capabilities.map(({ icon: Icon, title, description }, i) => (
+          {capabilities.map(({ icon: Icon, title, description, href }, i) => (
             <motion.div
               key={title}
               variants={rise}
-              className={`rule-t group hover:bg-background flex gap-5 py-6 transition-colors md:px-6 ${
-                i % 2 === 0 ? 'md:pl-0' : 'md:border-hairline md:border-l'
-              }`}
+              className={`rule-t ${i % 2 === 0 ? 'md:pl-0' : 'md:border-hairline md:border-l'}`}
             >
-              <Icon
-                className="text-primary mt-0.5 size-4 shrink-0 transition-transform duration-300 group-hover:-translate-y-0.5"
-                strokeWidth={1.75}
-              />
-              <div>
-                <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
-                <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-                  {description}
-                </p>
-              </div>
+              {/* The whole row is the target -- an index entry that reads as
+                  prose but behaves like a link to the page documenting it. */}
+              <Link
+                href={href}
+                className="group hover:bg-background flex gap-5 py-6 transition-colors md:px-6"
+              >
+                <Icon
+                  className="text-primary mt-0.5 size-4 shrink-0 transition-transform duration-300 group-hover:-translate-y-0.5"
+                  strokeWidth={1.75}
+                />
+                <div>
+                  <h3 className="text-sm font-semibold tracking-tight">
+                    {title}
+                    <ArrowRight
+                      aria-hidden
+                      className="ml-1.5 inline size-3 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100"
+                    />
+                  </h3>
+                  <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+                    {description}
+                  </p>
+                </div>
+              </Link>
             </motion.div>
           ))}
         </div>
@@ -284,18 +352,21 @@ const steps = [
     title: 'Pull a model',
     body: 'Point Breeze at any Ollama instance you can reach. Local machine, home server, the box under the desk.',
     cmd: 'ollama pull qwen3',
+    href: '/docs/getting-started#pull-the-models',
   },
   {
     n: '02',
     title: 'Bring the app up',
     body: 'Next.js on the front, FastAPI behind it. Both read their config from one env file.',
     cmd: 'bun run dev',
+    href: '/docs/getting-started#install-the-frontend',
   },
   {
     n: '03',
     title: 'Make an account',
     body: 'Accounts live in your own MongoDB. There is no tenant, no plan, and nobody else on the instance.',
     cmd: 'open localhost:3000',
+    href: '/docs/getting-started#verify',
   },
 ];
 
@@ -309,17 +380,26 @@ export function SetupSection() {
       className="rule-t"
     >
       <div className="mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-32">
-        <SectionHead eyebrow="Setup" title="Three steps, in this order." />
+        <SectionHead
+          eyebrow="Setup"
+          title="Three steps, in this order."
+          link={{ href: '/docs/getting-started', label: 'Full installation guide' }}
+        />
 
         <ol className="mt-14 grid gap-px md:grid-cols-3">
-          {steps.map(({ n, title, body, cmd }) => (
-            <motion.li key={n} variants={rise} className="rule-t py-7 md:px-6 md:first:pl-0">
-              <span className="readout text-brass text-xs">{n}</span>
-              <h3 className="type-display mt-3 text-xl">{title}</h3>
-              <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{body}</p>
-              <code className="readout bg-secondary text-foreground mt-5 inline-block px-2.5 py-1.5 text-xs">
-                {cmd}
-              </code>
+          {steps.map(({ n, title, body, cmd, href }) => (
+            <motion.li key={n} variants={rise} className="rule-t md:first:pl-0">
+              {/* Each step opens the same step, written out in full. */}
+              <Link href={href} className="group block py-7 md:px-6">
+                <span className="readout text-brass text-xs">{n}</span>
+                <h3 className="type-display group-hover:text-primary mt-3 text-xl transition-colors">
+                  {title}
+                </h3>
+                <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{body}</p>
+                <code className="readout bg-secondary text-foreground mt-5 inline-block px-2.5 py-1.5 text-xs">
+                  {cmd}
+                </code>
+              </Link>
             </motion.li>
           ))}
         </ol>
@@ -408,6 +488,9 @@ export function CTASection({ isLoggedIn }: { isLoggedIn: boolean }) {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-none px-7">
+              <Link href="/docs/getting-started">Read the docs</Link>
+            </Button>
+            <Button asChild size="lg" variant="ghost" className="rounded-none px-7">
               <Link
                 href="https://github.com/localhostd3veloper/breeze"
                 target="_blank"

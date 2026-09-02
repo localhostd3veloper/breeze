@@ -10,7 +10,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     // `theme` stays disabled: the root layout already mounts next-themes, and a
     // second provider would fight it over the `class` attribute.
     <RootProvider theme={{ enabled: false }}>
-      <GlassLayout {...baseOptions()} tree={source.getPageTree()} sidebar={{ defaultOpenLevel: 1 }}>
+      <GlassLayout {...baseOptions()} tree={source.getPageTree()}>
         {children}
       </GlassLayout>
     </RootProvider>

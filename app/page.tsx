@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpenIcon } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
@@ -62,20 +62,29 @@ export default async function Page() {
           </Link>
 
           <div className="flex items-center gap-1.5">
-            <Button asChild size="sm" variant="outline" className="gap-1.5 rounded-none">
-              <Link href="/docs">
-                <BookOpenIcon className="size-3.5" />
-                Docs
-              </Link>
-            </Button>
-            <Link
-              href="https://github.com/localhostd3veloper/breeze"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground eyebrow mr-2 hidden transition-colors sm:inline"
-            >
-              Source
-            </Link>
+            {/* Navigation reads as one group of plain text links; the divider
+                separates it from the controls so the bare theme icon is not
+                stranded between a text button and a solid one. */}
+            <nav className="flex items-center">
+              <Button asChild size="sm" variant="ghost" className="rounded-none">
+                <Link href="/docs">Docs</Link>
+              </Button>
+              <Button
+                asChild
+                size="sm"
+                variant="ghost"
+                className="hidden rounded-none sm:inline-flex"
+              >
+                <Link
+                  href="https://github.com/localhostd3veloper/breeze"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  GitHub
+                </Link>
+              </Button>
+            </nav>
+            <span aria-hidden className="bg-border mx-1.5 hidden h-4 w-px sm:block" />
             <ToggleTheme variant="ghost" size="icon-sm" className="rounded-none" />
             {isLoggedIn ? (
               <Button asChild size="sm" className="gap-1.5 rounded-none">
@@ -140,11 +149,16 @@ export default async function Page() {
 
               <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both mt-8 flex flex-wrap items-center gap-3 duration-700 [animation-delay:380ms]">
                 {isLoggedIn ? (
-                  <Button asChild size="lg" className="gap-2 rounded-none px-7">
-                    <Link href="/chat">
-                      Open Breeze <ArrowRight className="size-4" />
-                    </Link>
-                  </Button>
+                  <>
+                    <Button asChild size="lg" className="gap-2 rounded-none px-7">
+                      <Link href="/chat">
+                        Open Breeze <ArrowRight className="size-4" />
+                      </Link>
+                    </Button>
+                    <Button asChild size="lg" variant="outline" className="rounded-none px-7">
+                      <Link href="/docs">Read the docs</Link>
+                    </Button>
+                  </>
                 ) : (
                   <>
                     <Button asChild size="lg" className="gap-2 rounded-none px-7">
@@ -195,6 +209,9 @@ export default async function Page() {
           <div className="flex items-center gap-6">
             <Link href="/docs" className="hover:text-foreground eyebrow transition-colors">
               Docs
+            </Link>
+            <Link href="/docs/api" className="hover:text-foreground eyebrow transition-colors">
+              API
             </Link>
             <Link
               href="https://github.com/localhostd3veloper"
