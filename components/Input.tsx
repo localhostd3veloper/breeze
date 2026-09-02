@@ -1,6 +1,6 @@
 'use client';
 
-import { GlobeIcon, SlidersHorizontalIcon, SparklesIcon } from 'lucide-react';
+import { ChartColumnIcon, GlobeIcon, SlidersHorizontalIcon, SparklesIcon } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 
 import {
@@ -27,6 +27,7 @@ import {
 } from '@/components/ai-elements/prompt-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
+import type { GenUiMode } from '@/lib/genui/schema';
 
 interface AttachmentItemProps {
   attachment: {
@@ -74,7 +75,8 @@ interface ChatInputProps {
     text: string,
     webSearch: boolean,
     thinking: boolean,
-    images: string[]
+    images: string[],
+    genui: GenUiMode
   ) => Promise<void>;
   isChatAvailable: boolean;
 }
@@ -82,6 +84,13 @@ interface ChatInputProps {
 const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
   const [webSearch, setWebSearch] = useState(false);
   const [thinking, setThinking] = useState(false);
+  /**
+   * Off is `auto`, not `off`: the backend router still decides per turn, which is
+   * the behaviour that makes the feature feel automatic. The switch only removes
+   * the router's veto. Turning it on costs a call to the larger UI model on every
+   * turn, so it is not the default.
+   */
+  const [alwaysVisual, setAlwaysVisual] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [status, setStatus] = useState<'submitted' | 'streaming' | 'ready' | 'error'>('ready');
 
@@ -94,10 +103,12 @@ const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
         setStatus('streaming');
         const images = message.files.map((f) => f.url);
         // return immediately so PromptInput clears the textarea now
-        onSubmit(text, webSearch, thinking, images).finally(() => setStatus('ready'));
+        onSubmit(text, webSearch, thinking, images, alwaysVisual ? 'on' : 'auto').finally(() =>
+          setStatus('ready')
+        );
       }
     },
-    [onSubmit, webSearch, thinking]
+    [onSubmit, webSearch, thinking, alwaysVisual]
   );
 
   return (
@@ -125,7 +136,9 @@ const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
                     <PromptInputButton
                       tooltip="Chat settings"
                       className={
-                        webSearch || thinking ? 'bg-primary/10 text-accent-foreground' : ''
+                        webSearch || thinking || alwaysVisual
+                          ? 'bg-primary/10 text-accent-foreground'
+                          : ''
                       }
                     >
                       <SlidersHorizontalIcon size={16} />
@@ -146,6 +159,16 @@ const ChatInput = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
                       </div>
                       <Switch checked={webSearch} onCheckedChange={setWebSearch} />
                     </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <ChartColumnIcon size={14} />
+                        <span>Always visualize</span>
+                      </div>
+                      <Switch checked={alwaysVisual} onCheckedChange={setAlwaysVisual} />
+                    </div>
+                    <p className="text-muted-foreground text-xs">
+                      Off, Breeze decides when a chart or table helps.
+                    </p>
                   </PopoverContent>
                 </Popover>
               </PromptInputTools>

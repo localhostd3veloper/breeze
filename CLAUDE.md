@@ -80,6 +80,21 @@ configured below; otherwise the existing local path runs unchanged.
 Chart colours are **not** free-form — see `tasks/chart-design.md` for the validated palette
 and `scripts/validate_palette.js` to re-check any change.
 
+**The context-window trap (read before editing `backend/genui_prompt.py`).** Ollama's
+default window is **4096 tokens** and its OpenAI-compatible endpoint **silently ignores**
+`options.num_ctx` — verified, not assumed. When the prompt overflows, Ollama truncates
+**from the front**, which evicts the system prompt: the model loses both the widget
+grammar and its Breeze identity, and answers "I'm unable to display charts". Consequences:
+
+- The grammar is budgeted to ~650 tokens; `genui_prompt.test_prompt_budget()` enforces it.
+- Prompt and completion share the window, so the genui path caps `max_tokens` at 1536
+  rather than 4096.
+- History is trimmed on genui turns (`_trim_history`) so a long conversation cannot push
+  the grammar out.
+
+Raising `OLLAMA_CONTEXT_LENGTH` on the Ollama server relaxes all three, but the defaults
+must work unconfigured.
+
 ### Persistence Pattern
 
 - User message: saved via fire-and-forget `POST /api/conversations/:id/messages`

@@ -173,3 +173,11 @@ export type ChartVariant = GenUiChart['variant'];
 
 /** The fence language that carries a spec. */
 export const GENUI_LANGUAGE = 'breeze-ui';
+
+/**
+ * Per-turn generative-UI routing, sent as the request's `genui` field.
+ *
+ * `auto` asks the backend router to decide; `on` skips the router and forces the
+ * stronger model; `off` keeps the turn on the plain local prose path.
+ */
+export type GenUiMode = 'auto' | 'on' | 'off';

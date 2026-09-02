@@ -125,8 +125,9 @@ local model            strong model (UI_MODEL_*) + genui system prompt
       without the model as a variable.
 - [x] Screenshot light + dark; mobile checked programmatically for overflow via `chrome-devtools`
 - [ ] **NOT DONE — Reload a conversation containing widgets** — must re-render from Mongo identically
-- [ ] **NOT DONE — end-to-end with a real model**, confirming a mid-stream fence resolves
-      from skeleton to widget without flicker
+- [x] **End-to-end against live gemma3:12b** — 3 widgets (2 charts + metrics) emitted,
+      all validated by the real `parseGenUiSpec`. Mid-stream skeleton→widget still
+      unverified in the browser (fixture 12 covers the state itself).
 - [x] Prose-only path reviewed as unchanged (code-level; see review caveat)
 
 ## Risks / open items
@@ -187,11 +188,26 @@ mismatch → quiet collapsed error; trailing commas recover; single point, 40 ro
 labels render. Zero console errors. At 390px `body.scrollWidth === clientWidth` — no widget
 overflows. Light and dark both eyeballed.
 
-**NOT verified — do not assume these work.**
+**Post-review fix: the feature did not actually work, and the cause was mine.**
 
-- **No live model call was ever made.** The router's YES/NO accuracy and the strong model's
-  fence output quality are completely untested. This is the biggest remaining risk and it
-  sits in `backend/genui_prompt.py`.
+First live run produced prose only, cut off mid-sentence, and on a follow-up the model
+replied "as an AI text-based model, I'm unable to display charts" — proof the system prompt
+never reached it. Root cause: the grammar was **~3,385 tokens** against Ollama's **4096-token
+default window**, and Ollama's OpenAI-compatible endpoint **silently ignores**
+`options.num_ctx` (tested at 16384 — still lost the prompt). Ollama truncates from the front,
+so the grammar and the Breeze identity were evicted before generation.
+
+Three fixes: grammar rewritten 3,385 → **647 tokens** with a budget assertion
+(`test_prompt_budget`); genui `max_tokens` 4096 → 1536, since prompt and completion share
+the window; and history trimmed on genui turns so a long conversation cannot re-trigger it.
+
+**Now verified live:** the original prompt yields table + metrics; the follow-up that
+previously drew the refusal yields 2 bar charts + metrics. Every fence passes the real
+`parseGenUiSpec`, and `finish_reason` is `stop` rather than a length cut.
+
+**Still NOT verified.**
+
+- Router accuracy beyond the handful of turns tried (it did fire `YES` correctly here).
 - **Reload persistence untested.** The argument that `content` round-trips through Mongo is
   sound and needs no new field, but it was not exercised against a real conversation.
 - **The separate-endpoint branch was never exercised** — no non-local `UI_MODEL_BASE_URL` was

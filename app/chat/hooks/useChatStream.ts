@@ -5,17 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useCallback } from 'react';
 
+import type { GenUiMode } from '@/lib/genui/schema';
 import type { ChatMessageDTO } from '@/lib/types/conversation';
 import type { StreamEvent } from '@/lib/types/stream';
 
 const MESSAGES_KEY = (id: string) => ['conversations', id, 'messages'];
 
-/**
- * Generative UI routing. `auto` lets the backend router decide per turn whether
- * the answer warrants a widget. There is no user-facing toggle yet — swapping
- * this for state is the whole change if one is added.
- */
-const GENUI_MODE: 'auto' | 'on' | 'off' = 'auto';
+/** Regenerate and edit reuse the router rather than inheriting a forced mode. */
+const DEFAULT_GENUI_MODE: GenUiMode = 'auto';
 
 function getMessages(qc: ReturnType<typeof useQueryClient>, convId: string): ChatMessageDTO[] {
   return qc.getQueryData<ChatMessageDTO[]>(MESSAGES_KEY(convId)) ?? [];
@@ -83,7 +80,8 @@ export function useChatStream(conversationId?: string) {
       convId: string,
       userMsg: UserMessageRef,
       webSearch: boolean,
-      thinking: boolean
+      thinking: boolean,
+      genui: GenUiMode
     ): Promise<void> => {
       const now = new Date().toISOString();
       const assistantMsgId = crypto.randomUUID();
@@ -111,7 +109,7 @@ export function useChatStream(conversationId?: string) {
           thinking,
           history,
           web_search: webSearch,
-          genui: GENUI_MODE,
+          genui,
           ...(images.length && {
             images: images.map((url) => (url.includes(',') ? url.split(',')[1] : url)),
           }),
@@ -185,7 +183,8 @@ export function useChatStream(conversationId?: string) {
       text: string,
       webSearch = false,
       thinking = false,
-      images: string[] = []
+      images: string[] = [],
+      genui: GenUiMode = DEFAULT_GENUI_MODE
     ): Promise<void> => {
       let convId = conversationId;
       const isNewConversation = !convId;
@@ -220,7 +219,13 @@ export function useChatStream(conversationId?: string) {
         body: JSON.stringify({ role: 'user', content: text, ...(images.length && { images }) }),
       });
 
-      await streamAssistant(convId, { id: userMsgId, content: text, images }, webSearch, thinking);
+      await streamAssistant(
+        convId,
+        { id: userMsgId, content: text, images },
+        webSearch,
+        thinking,
+        genui
+      );
 
       if (isNewConversation) {
         fetch(`/api/conversations/${convId}/summarize`, {
@@ -266,7 +271,13 @@ export function useChatStream(conversationId?: string) {
         body: JSON.stringify({ role: 'user', content: newText }),
       });
 
-      await streamAssistant(convId, { id: userMsgId, content: newText }, false, false);
+      await streamAssistant(
+        convId,
+        { id: userMsgId, content: newText },
+        false,
+        false,
+        DEFAULT_GENUI_MODE
+      );
     },
     [conversationId, queryClient, streamAssistant]
   );
@@ -297,7 +308,8 @@ export function useChatStream(conversationId?: string) {
           images: precedingUserMsg.images,
         },
         false,
-        false
+        false,
+        DEFAULT_GENUI_MODE
       );
     },
     [conversationId, queryClient, streamAssistant]
