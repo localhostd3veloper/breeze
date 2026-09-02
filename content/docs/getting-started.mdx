@@ -94,15 +94,28 @@ Breeze talks to Ollama's OpenAI-compatible endpoint, `http://localhost:11434/v1`
 by default. Pull the models for the modes you plan to use:
 
 ```bash
-ollama pull phi4-mini    # default chat and summarisation
-ollama pull gemma3       # vision and generative UI
-ollama pull qwen3        # reasoning / thinking mode
-ollama pull qwen2.5      # web search
+./install.sh   # reads backend/models.json and pulls exactly that set
 ```
 
-Only `phi4-mini` is required to send a first message. The others are pulled on
-demand by the mode that needs them -- see
+Or by hand:
+
+```bash
+ollama pull phi4-mini:3.8b        # default chat and summarisation
+ollama pull qwen3-vl:8b-instruct  # vision and generative UI
+ollama pull qwen3:8b              # reasoning / thinking mode
+ollama pull qwen2.5:7b            # web search
+```
+
+Only `phi4-mini:3.8b` is required to send a first message. The others are pulled
+on demand by the mode that needs them -- see
 [model selection](/docs/architecture#model-selection).
+
+<Callout title="Prefer the -instruct tag">
+  For the vision and generative-UI roles, use a model's `-instruct` tag rather
+  than its thinking tag. A thinking model spends the capped completion budget on
+  reasoning and can return an empty answer -- the bare `qwen3-vl:8b` resolves to
+  the thinking variant and renders no widget on most turns.
+</Callout>
 
 Override the endpoint with `OLLAMA_BASE_URL` in `backend/.env` if Ollama runs
 on another machine.

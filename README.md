@@ -190,7 +190,7 @@ breeze/
 
 - **Streaming chat** via NDJSON with real-time token rendering
 - **Web search** powered by Tavily (automatic when user asks about recent events)
-- **Vision** -- attach images to messages (uses llava)
+- **Vision** -- attach images to messages (uses qwen3-vl)
 - **Extended thinking** -- step-by-step reasoning mode (uses qwen3)
 - **Conversation history** with auto-generated titles (via OpenAI-compatible API)
 - **Dark/light mode**, markdown + code highlighting, math, Mermaid diagrams

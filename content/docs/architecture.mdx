@@ -15,18 +15,18 @@ Browser -> Next.js API routes -> FastAPI backend -> Ollama
 ```
 
 <Callout title="Next.js never talks to Ollama">
-  Every LLM call is owned by FastAPI. The Next.js routes are an authenticated
-  passthrough -- they add `X-API-Key` and forward the tracing headers, nothing more.
+  Every LLM call is owned by FastAPI. The Next.js routes are an authenticated passthrough -- they
+  add `X-API-Key` and forward the tracing headers, nothing more.
 </Callout>
 
 ## The split
 
-| Layer       | Owns                                                                      |
-| ----------- | ------------------------------------------------------------------------- |
-| **Next.js** | Auth, chat UI, CRUD for conversations and messages, passthrough proxy.    |
+| Layer       | Owns                                                                        |
+| ----------- | --------------------------------------------------------------------------- |
+| **Next.js** | Auth, chat UI, CRUD for conversations and messages, passthrough proxy.      |
 | **FastAPI** | All LLM calls: streaming, summarisation, generative UI routing, web search. |
-| **Ollama**  | Running the models.                                                       |
-| **MongoDB** | Users, conversations and messages, via Mongoose.                          |
+| **Ollama**  | Running the models.                                                         |
+| **MongoDB** | Users, conversations and messages, via Mongoose.                            |
 
 ## Where the code lives
 
@@ -73,22 +73,19 @@ Messages live **exclusively** in the TanStack Query cache, under the key
 `['conversations', id, 'messages']`. Zustand holds only `isAuthenticated`.
 
 <Callout type="warn" title="Do not move messages into Zustand">
-  Two stores for one list means two sources of truth during a stream. The cache
-  is already the transport: `useChatStream` writes chunks into it with
-  `setQueryData` as they arrive.
+  Two stores for one list means two sources of truth during a stream. The cache is already the
+  transport: `useChatStream` writes chunks into it with `setQueryData` as they arrive.
 </Callout>
 
 <TypeTable
   type={{
     staleTime: {
-      description:
-        'Set to Infinity so a background refetch cannot clobber an in-flight stream.',
+      description: 'Set to Infinity so a background refetch cannot clobber an in-flight stream.',
       type: 'Infinity',
       required: true,
     },
     isStreaming: {
-      description:
-        'Client-only in-flight marker on a message. Never read from the database.',
+      description: 'Client-only in-flight marker on a message. Never read from the database.',
       type: 'boolean',
       default: 'undefined',
     },
@@ -156,28 +153,38 @@ Every turn runs as **acquire → answer**. The acquire pass decides whether the 
 is needed and runs the tools; the answer pass writes the reply, receiving any
 results as an evidence block in the user turn rather than as `tool`-role messages.
 
-Keeping them apart is what lets web search and generative UI happen in the *same*
-answer. A tool-role message ties the answer to a tool-calling model, and
-`gemma3:12b` cannot call tools at all -- which is why search used to veto widgets.
+Keeping them apart is what lets web search and generative UI happen in the _same_
+answer. A tool-role message ties the answer to a tool-calling model, and the genui
+model at the time -- `gemma3:12b` -- cannot call tools at all, which is why search
+used to veto widgets. The current genui model does support tools, so that no longer
+binds locally, but the split still earns its keep: a hosted `UI_MODEL_BASE_URL`
+need not do tool calls, and the answer model stays free to be whichever one suits
+the turn.
+
+The acquire model must be **non-thinking**. A thinking model spends its whole
+`ACQUIRE_MAX_TOKENS` budget reasoning and never emits the tool call -- measured
+against live Ollama, `qwen3:8b` scored 6/8 on the acquire suite where
+`qwen2.5:7b` scored 8/8, and took 4-20s a turn instead of under a second. Since
+search is on by default, that cost lands on every turn.
 
 ### Model selection
 
-The answer model is picked *after* acquire, so it follows what actually happened.
+The answer model is picked _after_ acquire, so it follows what actually happened.
 Priority is **images > thinking > evidence > default**.
 
-| Condition               | Model            |
-| ----------------------- | ---------------- |
-| Default                 | `phi4-mini:3.8b` |
-| Images present          | `gemma3:12b`     |
-| Thinking mode           | `qwen3:8b`       |
-| A search actually ran   | `qwen2.5:7b`     |
-| Summarisation           | `phi4-mini:3.8b` |
-| Generative UI           | `gemma3:12b`     |
+| Condition             | Model                  |
+| --------------------- | ---------------------- |
+| Default               | `phi4-mini:3.8b`       |
+| Images present        | `qwen3-vl:8b-instruct` |
+| Thinking mode         | `qwen3:8b`             |
+| A search actually ran | `qwen2.5:7b`           |
+| Summarisation         | `phi4-mini:3.8b`       |
+| Generative UI         | `qwen3-vl:8b-instruct` |
 
 <Callout title="Evidence, not the toggle">
-  Search is on by default, so keying the model off the *flag* would put every
-  "hi" on the tool-capable model. It keys off `has_evidence` instead -- a turn
-  that needed no search is still answered by the small default model.
+  Search is on by default, so keying the model off the *flag* would put every "hi" on the
+  tool-capable model. It keys off `has_evidence` instead -- a turn that needed no search is still
+  answered by the small default model.
 </Callout>
 
 ### Combining modes
@@ -187,7 +194,7 @@ The four switches are independent, so any combination can arrive.
 
 - **Images pin the model and the client.** A remote generative-UI endpoint may not
   accept image parts, and dropping your attachment is worse than dropping the
-  widget model. The widget *grammar* still rides along, so "chart what is in this
+  widget model. The widget _grammar_ still rides along, so "chart what is in this
   screenshot" works.
 - **Generative UI outranks thinking for the token budget.** Both want the window;
   a truncated widget spec renders as an error, while truncated reasoning is just
