@@ -528,3 +528,40 @@ off-screen — a regression from moving `icon` → `offcanvas`, now fixed).
 `app/chat/[id]/page.client.tsx`, `app/chat/page.client.tsx` and `components/Input.tsx`
 — untouched files, not this change's scope. Verified with `tsc --noEmit` + `eslint`
 rather than `bun run build`, per the dev-server lesson.
+
+---
+
+## Blur reveal on streaming text (2026-09-02)
+
+- [x] Drive the reveal through Streamdown's own animate plugin rather than a
+      hand-rolled tokeniser — it already wraps arriving words and, via
+      `setPrevContentLength`, hands words that are already on screen a `0ms`
+      duration so the paragraph does not re-blur on every token.
+- [x] Word-level, not character-level (`sep: 'word'`): one span per word instead
+      of per letter, and a word is the unit the eye resolves anyway.
+- [x] Gate it on `msg.isStreaming`. The plugin animates off _mount_, not off
+      arrival, so leaving it on would re-blur a whole transcript every time a
+      saved conversation is opened.
+- [x] Pass `isAnimating` as well as `animated` — see `tasks/lessons.md`.
+
+**Files.** `app/globals.css` (`sd-breezeReveal` keyframe + the `[data-sd-animate]`
+rule Streamdown targets), `components/ai-elements/message.tsx` (`animate` prop on
+`MessageResponse`), `app/chat/components/chat-messages.tsx` (one call site).
+
+**The reveal.** `opacity 0 → 1` with `blur(5px) → 0`, 300ms, `cubic-bezier(0.22,
+0.61, 0.36, 1)`, opacity finishing at 60% so each word _arrives and then sharpens_
+rather than cross-fading. No slide, no scale — the brief was blur to no blur.
+
+**Verified in the running app,** not by inspection: mid-stream the DOM carries
+`[data-sd-animate]` spans whose computed filter walks `blur(5px) → blur(2.27px) →
+blur(0.99px) → 0`, ~35–55 words in flight at the leading edge, and the wrapper
+spans are gone once `isStreaming` flips (settled messages are plain text again).
+Code, `pre`, `svg` and math are skipped by the plugin, so `breeze-ui` fences and
+shiki blocks are untouched.
+
+**Reduced motion** needs nothing new — the existing global `prefers-reduced-motion`
+block collapses `animation-duration`, and the keyframe's end state is the sharp one.
+
+**Left alone.** Reasoning panels still render unanimated (secondary, usually
+collapsed), and the three pre-existing lint errors in `app/chat/page.client.tsx`
+and `app/chat/[id]/page.client.tsx` are untouched files.
