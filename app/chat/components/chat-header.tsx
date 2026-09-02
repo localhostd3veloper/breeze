@@ -5,22 +5,28 @@ import { useParams } from 'next/navigation';
 
 import { ConversationDownload } from '@/components/ai-elements/conversation';
 import { ToggleTheme } from '@/components/theme-switch';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useChatMessages } from '@/hooks/use-chat-messages';
+import { cn } from '@/lib/utils';
 
 export function ChatHeader() {
   const params = useParams<{ id?: string }>();
   const conversationId = params?.id;
+  const { open, isMobile } = useSidebar();
 
   const { data: messages } = useChatMessages(conversationId ?? '');
 
   return (
     <header className="static top-0 right-0 left-0 z-10 flex items-center justify-between border-b p-3 lg:absolute lg:w-full lg:border-none">
-      <div className="type-wordmark flex items-center text-lg md:text-xl">
+      <div className="flex items-center">
         <SidebarTrigger className="md:hidden" />
         <Tooltip>
-          <TooltipTrigger className="flex gap-1">
+          {/* The floating latch is the mark while the sidebar is stowed, so the
+              nameplate stands down rather than sitting on top of it. */}
+          <TooltipTrigger
+            className={cn('type-wordmark flex text-lg md:text-xl', !open && !isMobile && 'hidden')}
+          >
             Breeze<span className="text-primary">.</span>
           </TooltipTrigger>
           <TooltipContent side="right" className="flex items-center gap-0.5">

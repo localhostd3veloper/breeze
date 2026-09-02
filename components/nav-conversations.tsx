@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRef, useState } from 'react';
 
+import { usePeekLock, useSidebarPeek } from '@/components/sidebar-peek';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,6 +79,11 @@ function ConversationItem({
 }: ConversationItemProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { margin: '-20px 0px', once: false });
+  // The menu renders into a portal outside the panel, so reaching it means the
+  // pointer leaves the panel — which would slide the panel out from under its
+  // own menu. Hold it while the menu is up.
+  const [menuOpen, setMenuOpen] = useState(false);
+  usePeekLock(menuOpen);
 
   return (
     <motion.div
@@ -93,7 +99,7 @@ function ConversationItem({
             <span className="truncate font-[450]">{item.title}</span>
           </Link>
         </SidebarMenuButton>
-        <DropdownMenu>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <SidebarMenuAction showOnHover className="aria-expanded:bg-muted">
               <MoreHorizontalIcon />
@@ -142,6 +148,8 @@ export function NavConversations() {
   const pinMutation = usePinConversation();
   const regenerateTitleMutation = useRegenerateTitle();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  usePeekLock(deleteId !== null);
+  const { stowNow } = useSidebarPeek();
 
   return (
     <>
@@ -166,7 +174,10 @@ export function NavConversations() {
               onArchive={() => archiveMutation.mutate(item.id)}
               onRegenerateTitle={() => regenerateTitleMutation.mutate(item.id)}
               onDelete={() => setDeleteId(item.id)}
-              onNavigate={() => setOpenMobile(false)}
+              onNavigate={() => {
+                setOpenMobile(false);
+                stowNow();
+              }}
             />
           ))}
           {!isLoading && conversations.length === 0 && (

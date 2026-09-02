@@ -214,6 +214,29 @@
 /* Kept in @layer components so any Tailwind utility still wins over   */
 /* these, which avoids the padding/margin cancel-out trap.             */
 /* ------------------------------------------------------------------ */
+@keyframes sd-breezeReveal {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes reveal-rise {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 @layer components {
   /* Display face: Archivo set wide and tight, like signage on a gauge. */
   .type-display {
@@ -264,6 +287,37 @@
     border-top: 1px dashed color-mix(in oklab, var(--brass) 55%, transparent);
   }
 
+  /* Word-level mask reveal for display headlines: each word rides up from
+     behind its own clipped box, staggered by an inline animation-delay. */
+  .reveal-mask {
+    display: inline-block;
+    overflow: hidden;
+    /* .type-display sets line-height to 0.94, which is shorter than the font's
+       cap-to-descender extent — without this padding the mask crops the tops of
+       caps and the tails of descenders. The margins take it back out of layout. */
+    padding-top: 0.2em;
+    margin-top: -0.2em;
+    padding-bottom: 0.2em;
+    margin-bottom: -0.2em;
+  }
+
+  .reveal-word {
+    display: inline-block;
+    animation: reveal-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Streaming answer text. Streamdown's animate plugin wraps each newly
+     arrived word in <span data-sd-animate> and passes the timing down as inline
+     custom properties, so this one rule drives the whole reveal. Words already
+     on screen come back with --sd-duration:0ms, which is what stops the
+     paragraph re-blurring on every token. Reduced motion is covered by the
+     global opt-out below; the keyframe ends sharp, so collapsing it to 0.01ms
+     lands on the right frame. */
+  [data-sd-animate] {
+    animation: var(--sd-animation, sd-breezeReveal) var(--sd-duration, 300ms)
+      var(--sd-easing, ease-out) both;
+  }
+
   /* Ruler ticks, as on the edge of a chart recorder's paper. */
   .ticks {
     background-image: repeating-linear-gradient(
@@ -281,6 +335,7 @@
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;

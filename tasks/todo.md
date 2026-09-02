@@ -261,3 +261,270 @@ value, so each mode gets the correct direction. Tail lengthened 16 → 52 sample
 
 **Not visually verified:** items 3's final look — the server was stopped before I could
 re-screenshot. Build and lint pass.
+
+---
+
+# Composer revamp — one input that starts centred and slides to the dock
+
+A new screen should read as an invitation, not as an empty transcript with a
+toolbar bolted to the bottom. So: a single-line input centred in the viewport,
+which glides to the bottom the moment you send, with your message already above it.
+
+## Decisions (agreed)
+
+| Question       | Decision                                                                     |
+| -------------- | ---------------------------------------------------------------------------- |
+| Where it lives | `app/chat/layout.tsx`, not either page — one DOM node across the route swap  |
+| What drives it | `docked` derived from the transcript, no second source of truth              |
+| Animation      | `motion` `layout` + `layoutDependency={docked}` (spring, reduced-motion off) |
+| Optimism       | Optimistic user message under a **pending** conversation cache key           |
+| Mode feedback  | Composer border takes the accent of the most-recently-enabled mode           |
+
+### Why the composer moves into the layout
+
+`/chat` → `/chat/[id]` is a real navigation. Two inputs in two pages cannot animate
+into each other — the first unmounts, the second mounts, and the pill snaps. A shared
+layout segment stays mounted across sibling pages, so the composer is _one_ element
+whose position changes. That is the whole trick; everything else follows from it.
+
+### Why a pending cache key
+
+`handleSubmit` used to `await POST /api/conversations` before showing anything, so on
+a new chat nothing moved until the server answered. The transcript is keyed by
+conversation id and there is no id yet — so the optimistic message lands under
+`['conversations', 'pending', 'messages']`, which `/chat` renders. The write is
+synchronous, so the slide starts on keypress. When the real id arrives the list is
+handed to the real key _before_ `router.replace`, so `/chat/[id]` paints what was
+already on screen instead of flashing.
+
+Messages stay exclusively in TanStack Query. No Zustand, no local mirror.
+
+## Tasks
+
+- [ ] `hooks/use-chat-messages.ts` — export `messagesQueryKey` + `PENDING_CONVERSATION_ID`;
+      never fetch the pending key
+- [ ] `app/chat/hooks/useChatStream.ts` — optimistic new-conversation path via the pending key
+- [ ] `components/ai-elements/prompt-input.tsx` — drop `InputGroup` for a shell the caller can
+      restyle (`shellClassName`), single-line textarea defaults, `PromptInputRow`,
+      submit disabled while empty
+- [ ] `components/Input.tsx` — single-line pill; modes as an ordered list so the border
+      accent tracks the newest one
+- [ ] `app/chat/components/chat-composer.tsx` — new; hero ↔ docked, greeting, health alert
+- [ ] `app/chat/layout.tsx` — render the composer after `{children}`
+- [ ] `app/chat/page.client.tsx` — pending transcript only; reset it on mount
+- [ ] `app/chat/[id]/page.client.tsx` — drop the input; skip the intro fade on a warm cache
+- [ ] `app/chat/components/chat-messages.tsx` — render nothing when empty (the greeting
+      now belongs to the composer)
+- [ ] `bun run lint` + `bun run build`
+
+### 4. Headline text reveal
+
+The h1 was one block fade+slide. Now each word rides up from behind its own clipped box,
+staggered 55ms, 0.7s `cubic-bezier(0.16, 1, 0.3, 1)` — a plate sliding into place rather
+than a flourish, which suits the signage direction.
+
+Rendered server-side as plain spans with inline `animationDelay` and pure CSS keyframes,
+so there is no client component, no JS, and no hydration flash on first paint.
+
+Three traps handled:
+
+- `.type-display` has `line-height: 0.94`, shorter than the font's cap-to-descender
+  extent, so an unpadded mask crops caps and descenders. `.reveal-mask` pads `0.2em`
+  top and bottom and removes it again with negative margins.
+- The inter-word space is a sibling of the masks, not inside one. Trailing whitespace
+  inside an inline-block creates no break opportunity, so putting it inside would stop
+  the headline wrapping and overflow it on narrow screens.
+- "can touch." is a single unit (nbsp) so the closing phrase can't be orphaned — this
+  preserved the intent of the `&nbsp;` that was in the old markup.
+
+Also fixed a **pre-existing** reduced-motion bug: the guard zeroed `animation-duration`
+but not `animation-delay`, so anything with `fill-mode: both` sat at its `from` state
+through its delay and then popped. Harmless at 120–520ms on the old hero; with a per-word
+stagger it would have shown an empty headline. `animation-delay: 0ms !important` added.
+
+### 5. Signed-in app review (server running, logged in)
+
+- **Wordmark read "Breeze ." — my regression.** `TooltipTrigger` carried `flex gap-1`,
+  harmless while the wordmark was the single text node `Breeze.`; splitting the period into
+  a span gave the 4px gap something to act on. Removed `gap-1`.
+- **Two empty-state greetings rendered at once.** `chat-messages.tsx` and the newer
+  `chat-composer.tsx` each drew an _independent_ random pick from `emptyStateMessages`.
+  The composer sits in `chat/layout.tsx`, so it is always present when the transcript is
+  empty — the `ConversationEmptyState` was pure redundancy. Removed it plus the dead
+  `greeting` state and the `isLoading` prop (the `[id]` route already fades the wrapper
+  on load, so the child never needed it).
+- **Input sat 103px below centre.** Horizontally it was exact; vertically the _empty_
+  transcript still carried `flex-1`, so it split the column with the composer and the
+  composer's `justify-center` landed in the bottom half. Measured:
+  `header 52 / transcript 369 / composer 449`. Now the transcript only claims flex space
+  when it has messages, so the composer owns the full column and the greeting+input group
+  centres as one unit (optical centre within 14px). Docked state unchanged: `52 / 738 / 80`.
+- **Meteors on the empty chat screen: tried, then reverted.** Too much. The landing page
+  is a moment you see once, so ambient motion earns its place; the chat empty state is a
+  screen you hit dozens of times a day, where a loop becomes noise — and repeating the
+  signature dilutes the one place it means something. Removed.
+
+### 6. What the empty chat screen got instead
+
+This page already owns two purposeful beats: the greeting arriving, and the headline
+fading as the input glides down to dock. The dock transition _is_ the animation. The gap
+was only that the greeting faded in flatly, so it now takes the same per-word mask reveal
+as the landing headline — same language, reused on display type, one moment on mount and
+then stillness. Quicker than the landing (32ms stagger, 0.55s) because you meet this
+screen far more often. `motion` keeps the `exit` so the dock still works; the entrance is
+pure CSS.
+
+**Hydration trap this exposed.** The greeting is a random pick, previously a bare text node
+under `suppressHydrationWarning`. That attribute only covers an element's _own text_ — the
+moment the greeting became per-word spans, the server/client mismatch turned into a hard
+hydration error and React rebuilt the tree. Fixed by making the pick genuinely client-only
+via `useSyncExternalStore` (server snapshot `null`, client snapshot the greeting), which
+this repo's lint permits where `setState` in an effect does not. Two sub-traps:
+
+- `getSnapshot` must be referentially stable, so the pick is cached at module scope. The
+  composer lives in the layout and mounts once per page load, so this matches the old
+  per-mount behaviour.
+- `subscribe` must nudge once after hydration. With a no-op subscribe React never
+  re-renders and keeps serving the server snapshot, so no greeting ever appears — the
+  first attempt shipped exactly that bug.
+
+Verified: greeting renders, 9 word masks, 8px clearance top and bottom at 40px type (no
+clipping of descenders or the comma), no canvas in the tree, no console errors,
+`tsc --noEmit` and ESLint clean.
+
+**Also found, deliberately left alone (in-flight work, not mine):**
+
+- `app/chat/[id]/page.client.tsx:29` reads `useRef(...).current` during render, which this
+  repo's ESLint treats as an error — `bun run lint` fails on it. Not in `HEAD`. The
+  behaviour-identical fix is `useState(() => (messages?.length ?? 0) > 0)[0]`.
+- The metrics widget truncates `MEDIAN TIME-TO-FIRST-TOKE…`.
+
+---
+
+## Sidebar rewamp — stow / peek / pin (2026-09-02)
+
+### Brief
+
+Fully collapsible sidebar. Collapsed → only a floating logo top-left. Hovering the
+left edge auto-opens the panel adjacent to that logo; moving away auto-closes.
+Open (pinned) state unchanged. Plus: cap page width for ultrawide displays.
+
+### Design plan
+
+**Concept — a latch and a rail.** The app's existing identity is "Station":
+instrument-panel vernacular (Archivo signage display, mono readouts, hairlines
+instead of borders, brass as the second metal against verdigris). A stowed
+instrument leaves a _latch_ — that's the floating logo, a plate that sits flush in
+the corner with a hairline, not a glassmorphic pill with a grey drop shadow. The
+left screen edge becomes a _rail_: one brass hairline at zero opacity that ignites
+as the pointer approaches, so the edge announces itself during the intent delay
+rather than after the panel has already moved.
+
+**Color** — no new values. `--sidebar` for the panel, `--hairline` for its edge,
+`--brass` for the single signal moment (rail + armed latch ring), `--primary` for
+the mark. Palette validator untouched: no surface colour changes.
+
+**Type** — unchanged. The panel is chrome, not a reading surface.
+
+**Motion** — one thing moves: the panel, on a single 300ms
+`cubic-bezier(.32,.72,0,1)` decelerate covering left/top/bottom/radius/shadow, so
+peek→pin is one continuous gesture rather than a swap. Rail ignition is 150ms
+opacity. `motion-reduce` kills both. Nothing else animates on reveal.
+
+**Three states, not two.** `open` is the _pinned_ state and it moves layout.
+`peek` is a transient overlay — the panel floats above the content and nothing
+reflows, because a pointer brushing the left edge must not shift the text someone
+is reading.
+
+```
+STOWED                          PEEK (overlay, no reflow)
+┌─┬──────────────────────────┐  ┌──┬─────────────────┬──────┐
+│▏│                  ⤓  ☾    │  │▐ │ ⇤               │ ⤓ ☾  │
+│▏│ ┌──┐                     │  │▐ │ + New chat ⌘⇧O  │      │
+│▏│ │◈ │  ← latch (36px)     │  │▐ │ ⌕ Search   ⌘K   │      │
+│▏│ └──┘                     │  │▐ │ PAST            │      │
+│▏│                          │  │▐ │ · conversation  │      │
+│▏│      chat content        │  │▐ │ · conversation  │      │
+│▏│                          │  │▐ │                 │      │
+│▏│   ┌────────────────────┐ │  │▐ │ ◐ user          │      │
+│▏│   │ composer           │ │  │▐ └─────────────────┘      │
+└─┴──────────────────────────┘  └──┴────────────────────────┘
+ ↑ 16px live edge; brass          ↑ rail lit, panel docked beside
+   hairline 0 → 70% on approach     the latch; content does not move
+```
+
+| state  | enter                                     | layout         |
+| ------ | ----------------------------------------- | -------------- |
+| stowed | default when unpinned                     | content full   |
+| peek   | mouse in left 16px, or on the latch, 90ms | overlay        |
+| stow   | pointer out 220ms · Esc · navigate · pin  | —              |
+| pinned | click latch · ⌘B · pin button in peek     | content shifts |
+
+**Reviewed against the brief.** The default answer here is a `rounded-2xl`
+backdrop-blur pill with a chevron and a 4px grey hover bar, and peek that pushes
+content. Changed three things: the plate is a hairline plate in the app's own
+vocabulary; the hover affordance is a brass instrument hairline, not a grey slab;
+and peek overlays instead of pushing, which is the difference between a feature
+and a twitch.
+
+### Alignment / width
+
+`max-w-3xl` and `max-w-6xl` were scattered literals. Registered two container
+tokens so there is one knob each, then capped the chat header — the only uncapped
+container in the app, and the actual ultrawide complaint: its actions were flying
+to the far screen edge while the transcript stayed a 48rem column in the middle.
+
+- `--container-measure: 48rem` — anything read line-by-line (transcript, composer, chat header)
+- `--container-page: 72rem` — full-bleed shells (landing sections, landing nav/footer)
+
+### Tasks
+
+- [x] Read the existing sidebar primitive, nav components, width literals
+- [x] Design plan + review against brief
+- [x] `components/sidebar-peek.tsx` — peek context, rail, latch, shared mark
+- [x] `components/app-sidebar.tsx` — offcanvas + peek geometry, header per state
+- [x] Peek locks in `nav-main`/`nav-conversations`/`nav-user`
+- [x] Fix the double-bound ⌘B (primitive and AppSidebar both toggled → net no-op)
+- [x] Persist the stowed state — `SidebarProvider` wrote `sidebar_state` but nobody read it
+- [x] Verify: tsc, eslint, measured in the browser
+- [~] Width tokens — built, then **reverted at the user's request**. Every literal is
+  back to `max-w-3xl` / `max-w-6xl`; no tokens remain. See the review below.
+
+### Review
+
+**Corrections taken during the work, and what each cost.**
+
+1. _"you just removed the wide limit?"_ — Renaming `max-w-3xl` → `max-w-measure` in the
+   same edit that defined `--container-measure` half-applied: Turbopack rebuilt the JS
+   but served a CSS chunk from before the `globals.css` edit, so the class resolved to
+   nothing and a missing `max-width` is no limit at all. I had called it clean on `tsc`
+   and `eslint`, neither of which can see that. Lesson recorded.
+2. _"tooltips for new chat and all need to be closed when i close the sidebar"_ — The
+   collapsed-state tooltips on New Chat / Search Chats were dead weight the moment the
+   sidebar stopped being an icon rail: whenever those buttons are on screen so are their
+   labels. On ⌘B the panel slid out from under a hovered trigger and left a portalled
+   tooltip stranded over the transcript. Deleted them; the ⌘ hints stay inline. The
+   panel-header control keeps a tooltip, gated on the panel actually being on screen.
+3. _"sidebar collapsing and closing has a layout shift"_ — Real, and mine. The panel
+   slid on 300ms `cubic-bezier(.32,.72,0,1)` while shadcn's `sidebar-gap` — the element
+   that pushes the content — stayed on 200ms `linear`. Same boundary to the eye, two
+   clocks. Unified both. Two neighbours found the same way: `visibility` in the
+   transition list popped the panel in at 50%, replaced with `inert`; and the peek
+   panel's 1px border pushed its own mark to (17,17), replaced with `ring-1`.
+4. _"why does the hover version open outside of the logo???"_ — I read "adjacent" as
+   _beside_ and parked the panel in a column right of the latch, stranding the logo.
+   It should unfold _around_ it. Rebuilt: one `SidebarMark` rendered twice — as the
+   floating latch and inside the panel header — with the peek panel inset 8px so
+   `SidebarHeader`'s 8px pad puts its mark on the latch's exact rect. Verified
+   `16,16 36x36` in both states.
+5. _"revert whatever global width thing that you did"_ — Done, in full.
+
+**Measured, not eyeballed.** Registration `16,16 36x36` === `16,16 36x36`; gap and panel
+both `0.3s cubic-bezier(0.32, 0.72, 0, 1)`; peek gap width `0` (content never reflows);
+stowed panel `inert` (was leaking ~60 focusable conversation links into the tab order
+off-screen — a regression from moving `icon` → `offcanvas`, now fixed).
+
+**Left alone deliberately.** Four pre-existing lint errors in
+`app/chat/[id]/page.client.tsx`, `app/chat/page.client.tsx` and `components/Input.tsx`
+— untouched files, not this change's scope. Verified with `tsc --noEmit` + `eslint`
+rather than `bun run build`, per the dev-server lesson.

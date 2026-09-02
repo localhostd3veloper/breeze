@@ -27,19 +27,27 @@ import { Button } from '@/components/ui/button';
 /* re-animates every time you scroll past it is noise, not motion.      */
 /* ------------------------------------------------------------------ */
 
-const rise = {
+export const rise = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const } },
 };
 
-const group = (stagger = 0.06) => ({
+export const group = (stagger = 0.06) => ({
   hidden: {},
   show: { transition: { staggerChildren: stagger } },
 });
 
-const viewport = { once: true, margin: '-60px' } as const;
+export const viewport = { once: true, margin: '-60px' } as const;
 
-function SectionHead({ eyebrow, title, lede }: { eyebrow: string; title: string; lede?: string }) {
+export function SectionHead({
+  eyebrow,
+  title,
+  lede,
+}: {
+  eyebrow: string;
+  title: string;
+  lede?: string;
+}) {
   return (
     <motion.div variants={rise} className="max-w-2xl">
       <p className="eyebrow">{eyebrow}</p>

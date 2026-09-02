@@ -3,7 +3,9 @@
 import { ChevronsUpDownIcon, CodeIcon, LifeBuoyIcon, LogOutIcon } from 'lucide-react';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
+import { useState } from 'react';
 
+import { usePeekLock } from '@/components/sidebar-peek';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -23,6 +25,9 @@ import {
 
 export function NavUser() {
   const { isMobile } = useSidebar();
+  // Portalled outside the panel — see the note in nav-conversations.
+  const [menuOpen, setMenuOpen] = useState(false);
+  usePeekLock(menuOpen);
   const { data: session } = useSession();
   const user = {
     avatar: session?.user?.image ?? '',
@@ -32,7 +37,7 @@ export function NavUser() {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"

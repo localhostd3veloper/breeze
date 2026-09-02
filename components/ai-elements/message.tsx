@@ -272,7 +272,34 @@ export const MessageBranchPage = ({ className, ...props }: MessageBranchPageProp
   );
 };
 
-export type MessageResponseProps = ComponentProps<typeof Streamdown>;
+export type MessageResponseProps = ComponentProps<typeof Streamdown> & {
+  /**
+   * Reveal each word out of a blur as it arrives. Only ever true for text that
+   * is still streaming: Streamdown's animate plugin runs off mount, not off
+   * arrival, so leaving it on for a settled message would re-blur the whole
+   * transcript every time a conversation is opened.
+   *
+   * Drives Streamdown's `isAnimating` as well as `animated` — the plugin is not
+   * mounted unless both are set, and `isAnimating` is also what marks the
+   * trailing block incomplete, which is what keeps a half-written
+   * ```breeze-ui fence in its skeleton instead of flashing an error.
+   */
+  animate?: boolean;
+};
+
+/**
+ * Timing for that reveal. Word-level rather than character-level — one span per
+ * word instead of per letter, and a word is the unit the eye resolves anyway.
+ * Declared at module scope because Streamdown memoises on the identity of
+ * `animated`, so a fresh object each render would re-render every block on
+ * every token.
+ */
+const STREAM_REVEAL = {
+  animation: 'breezeReveal',
+  duration: 300,
+  easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
+  sep: 'word',
+} as const;
 
 /**
  * Generative UI: a ```breeze-ui fence renders as a widget instead of as code.
@@ -296,14 +323,17 @@ const streamdownPlugins = {
 };
 
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
+  ({ className, animate, ...props }: MessageResponseProps) => (
     <Streamdown
+      animated={animate ? STREAM_REVEAL : undefined}
+      isAnimating={animate}
       className={cn('size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0', className)}
       plugins={streamdownPlugins}
       {...props}
     />
   ),
-  (prevProps, nextProps) => prevProps.children === nextProps.children
+  (prevProps, nextProps) =>
+    prevProps.children === nextProps.children && prevProps.animate === nextProps.animate
 );
 
 MessageResponse.displayName = 'MessageResponse';

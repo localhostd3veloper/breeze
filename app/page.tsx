@@ -2,12 +2,14 @@ import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
+import { Fragment } from 'react';
 
 import { WindField } from '@/components/station/wind-field';
 import { ToggleTheme } from '@/components/theme-switch';
 import { Button } from '@/components/ui/button';
 import { authOptions } from '@/lib/auth';
 
+import { GenerativeUISection } from './genui-section';
 import {
   BoundarySection,
   CapabilitiesSection,
@@ -15,6 +17,19 @@ import {
   SetupSection,
   ShortcutsSection,
 } from './landing-sections';
+
+/** The headline as discrete reveal units. "can touch." stays one unit so the
+ *  closing phrase can never be orphaned on its own line. */
+const headline: { word: string; accent?: boolean }[] = [
+  { word: 'The' },
+  { word: 'model' },
+  { word: 'runs' },
+  { word: 'on' },
+  { word: 'a' },
+  { word: 'machine' },
+  { word: 'you', accent: true },
+  { word: 'can\u00A0touch.', accent: true },
+];
 
 /** Readings taken from the running system, not marketing numbers.
  *  `localhost:11434` is the default in backend/settings.py. */
@@ -90,8 +105,23 @@ export default async function Page() {
             Station · self-hosted AI chat
           </p>
 
-          <h1 className="type-display animate-in fade-in slide-in-from-bottom-3 fill-mode-both mt-6 max-w-4xl text-[clamp(2.6rem,8.5vw,6rem)] duration-700 [animation-delay:120ms]">
-            The model runs on a machine <span className="text-primary">you can&nbsp;touch.</span>
+          <h1 className="type-display mt-6 max-w-4xl text-[clamp(2.6rem,8.5vw,6rem)]">
+            {headline.map(({ word, accent }, i) => (
+              <Fragment key={`${i}-${word}`}>
+                {/* A real space between the masks, not inside one — whitespace at
+                    the end of an inline-block does not create a break opportunity,
+                    which would stop the headline wrapping. */}
+                {i > 0 && ' '}
+                <span className="reveal-mask">
+                  <span
+                    className={accent ? 'reveal-word text-primary' : 'reveal-word'}
+                    style={{ animationDelay: `${120 + i * 55}ms` }}
+                  >
+                    {word}
+                  </span>
+                </span>
+              </Fragment>
+            ))}
           </h1>
 
           <div className="mt-9 grid gap-12 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-20">
@@ -145,6 +175,7 @@ export default async function Page() {
 
       <BoundarySection />
       <CapabilitiesSection />
+      <GenerativeUISection />
       <SetupSection />
       <ShortcutsSection />
       <CTASection isLoggedIn={isLoggedIn} />

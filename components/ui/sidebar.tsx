@@ -210,7 +210,11 @@ function Sidebar({
       <div
         data-slot="sidebar-gap"
         className={cn(
-          'relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear',
+          // Must match the panel container's transition exactly. These two edges
+          // move together — the gap is the content edge, the container is the
+          // panel edge — so any difference in duration or curve reads as the
+          // content tearing away from the sidebar mid-slide.
+          'relative w-(--sidebar-width) bg-transparent transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none',
           'group-data-[collapsible=offcanvas]:w-0',
           'group-data-[side=right]:rotate-180',
           variant === 'floating' || variant === 'inset'

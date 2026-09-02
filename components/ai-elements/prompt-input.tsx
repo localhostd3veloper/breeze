@@ -1,7 +1,7 @@
 'use client';
 
 import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from 'ai';
-import { CornerDownLeftIcon, ImageIcon, PlusIcon, SquareIcon, XIcon } from 'lucide-react';
+import { ArrowUpIcon, ImageIcon, PlusIcon, SquareIcon, XIcon } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import type {
   ChangeEvent,
@@ -44,12 +44,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupTextarea,
-} from '@/components/ui/input-group';
+import { InputGroupButton, InputGroupTextarea } from '@/components/ui/input-group';
 import {
   Select,
   SelectContent,
@@ -339,6 +334,12 @@ export interface PromptInputMessage {
 export type PromptInputProps = Omit<HTMLAttributes<HTMLFormElement>, 'onSubmit' | 'onError'> & {
   // e.g., "image/*" or leave undefined for any
   accept?: string;
+  /**
+   * Classes for the bordered shell around the controls. The shell owns the
+   * composer's shape and its border colour, so callers that signal state on the
+   * frame itself (an enabled mode, an error) restyle it from here.
+   */
+  shellClassName?: string;
   multiple?: boolean;
   // When true, accepts drops anywhere on document. Default false (opt-in).
   globalDrop?: boolean;
@@ -357,6 +358,7 @@ export type PromptInputProps = Omit<HTMLAttributes<HTMLFormElement>, 'onSubmit' 
 
 export const PromptInput = ({
   className,
+  shellClassName,
   accept,
   multiple,
   globalDrop,
@@ -748,7 +750,15 @@ export const PromptInput = ({
         type="file"
       />
       <form className={cn('w-full', className)} onSubmit={handleSubmit} ref={formRef} {...props}>
-        <InputGroup className="overflow-hidden">{children}</InputGroup>
+        <div
+          className={cn(
+            'border-input bg-card/70 focus-within:ring-ring/20 relative flex w-full flex-col overflow-hidden rounded-md border shadow-xs transition-[border-color,box-shadow] duration-300 focus-within:ring-2',
+            shellClassName
+          )}
+          data-slot="prompt-input-shell"
+        >
+          {children}
+        </div>
       </form>
     </>
   );
@@ -779,6 +789,7 @@ export const PromptInputTextarea = ({
   onChange,
   onKeyDown,
   className,
+  rows = 1,
   placeholder = 'What would you like to know?',
   ...props
 }: PromptInputTextareaProps) => {
@@ -873,35 +884,43 @@ export const PromptInputTextarea = ({
 
   return (
     <InputGroupTextarea
-      className={cn('field-sizing-content max-h-48 min-h-16', className)}
+      className={cn('field-sizing-content max-h-40 min-h-8 px-2 py-1 leading-6', className)}
       name="message"
       onCompositionEnd={handleCompositionEnd}
       onCompositionStart={handleCompositionStart}
       onKeyDown={handleKeyDown}
       onPaste={handlePaste}
       placeholder={placeholder}
+      rows={rows}
       {...props}
       {...controlledProps}
     />
   );
 };
 
-export type PromptInputHeaderProps = Omit<ComponentProps<typeof InputGroupAddon>, 'align'>;
+export type PromptInputHeaderProps = HTMLAttributes<HTMLDivElement>;
 
+/** Sits above the controls — attachments, referenced sources, warnings. */
 export const PromptInputHeader = ({ className, ...props }: PromptInputHeaderProps) => (
-  <InputGroupAddon
-    align="block-end"
-    className={cn('order-first flex-wrap gap-1', className)}
-    {...props}
-  />
+  <div className={cn('flex w-full flex-wrap items-center gap-1 px-2 pt-2', className)} {...props} />
 );
 
-export type PromptInputFooterProps = Omit<ComponentProps<typeof InputGroupAddon>, 'align'>;
+export type PromptInputRowProps = HTMLAttributes<HTMLDivElement>;
 
+/**
+ * The single line: tools, the textarea, and submit on one baseline. Aligned to
+ * the end so the buttons stay level with the last line as the textarea grows.
+ */
+export const PromptInputRow = ({ className, ...props }: PromptInputRowProps) => (
+  <div className={cn('flex w-full items-end gap-1 p-2', className)} {...props} />
+);
+
+export type PromptInputFooterProps = HTMLAttributes<HTMLDivElement>;
+
+/** A second row beneath the input, for layouts that need one. */
 export const PromptInputFooter = ({ className, ...props }: PromptInputFooterProps) => (
-  <InputGroupAddon
-    align="block-end"
-    className={cn('justify-between gap-1', className)}
+  <div
+    className={cn('flex w-full items-center justify-between gap-1 px-2 pb-2', className)}
     {...props}
   />
 );
@@ -1010,12 +1029,20 @@ export const PromptInputSubmit = ({
   status,
   onStop,
   onClick,
+  disabled,
   children,
   ...props
 }: PromptInputSubmitProps) => {
+  const controller = useOptionalPromptInputController();
+  const attachments = usePromptInputAttachments();
   const isGenerating = status === 'submitted' || status === 'streaming';
 
-  let Icon = <CornerDownLeftIcon className="size-4" />;
+  // Nothing to send is a state the button should show, not one the form should
+  // discover on submit. The textarea's Enter handler reads `disabled` too.
+  const isEmpty =
+    !!controller && controller.textInput.value.trim() === '' && attachments.files.length === 0;
+
+  let Icon = <ArrowUpIcon className="size-4" />;
 
   if (status === 'submitted') {
     Icon = <Spinner />;
@@ -1039,8 +1066,9 @@ export const PromptInputSubmit = ({
 
   return (
     <InputGroupButton
-      aria-label={isGenerating ? 'Stop' : 'Submit'}
-      className={cn(className)}
+      aria-label={isGenerating ? 'Stop' : 'Send message'}
+      className={cn('rounded-full', className)}
+      disabled={disabled ?? (!isGenerating && isEmpty)}
       onClick={handleClick}
       size={size}
       type={isGenerating && onStop ? 'button' : 'submit'}

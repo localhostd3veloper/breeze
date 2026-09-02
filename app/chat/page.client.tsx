@@ -1,48 +1,39 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { Coffee } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
-import ChatInput from '@/components/Input';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  messagesQueryKey,
+  PENDING_CONVERSATION_ID,
+  useChatMessages,
+} from '@/hooks/use-chat-messages';
+import type { ChatMessageDTO } from '@/lib/types/conversation';
 
 import { ChatMessages } from './components/chat-messages';
-import { useChatStream } from './hooks/useChatStream';
-import { getChatHealth } from './utils/health';
 
+/**
+ * A new chat renders the pending transcript — the optimistic user message that
+ * `useChatStream` writes before the conversation exists. The composer and the
+ * health alert live in the layout, so this page is only the transcript.
+ */
 export function ChatClient() {
-  const { handleSubmit } = useChatStream();
+  const queryClient = useQueryClient();
+  const { data: pending } = useChatMessages(PENDING_CONVERSATION_ID);
 
-  const { data: isChatAvailable } = useQuery({
-    queryKey: ['chatHealth'],
-    queryFn: getChatHealth,
-    staleTime: 10_000,
-    refetchInterval: 10_000,
-  });
-
-  return (
-    <>
-      {/* Empty state — no messages until user starts a conversation */}
-      <ChatMessages messages={[]} />
-
-      <div className="mx-auto w-full max-w-3xl px-4 pb-2">
-        {isChatAvailable === false && (
-          <Alert
-            variant="destructive"
-            className="animate-in fade-in slide-in-from-bottom-2 mb-4 border-orange-500/50 bg-orange-500/10 text-orange-600 duration-300 dark:border-orange-500/30 dark:text-orange-400"
-          >
-            <Coffee className="size-4" />
-            <AlertTitle className="flex items-center gap-2">
-              The AI is currently catching some Zs... 😴
-            </AlertTitle>
-            <AlertDescription>
-              The backend is down — probably maintenance or the dev is asleep. You can browse past
-              conversations, but new messages won&apos;t go through. Check back later!
-            </AlertDescription>
-          </Alert>
-        )}
-        <ChatInput onSubmit={handleSubmit} isChatAvailable={!!isChatAvailable} />
-      </div>
-    </>
+  /**
+   * The pending key outlives the submit that filled it, so it has to be cleared
+   * somewhere. Clearing it on the way out rather than on the way in means a fresh
+   * /chat never has a stale transcript to hide — so there is nothing to gate the
+   * first render on, and no flash to suppress. By unmount the handover to the real
+   * conversation key has already happened, so nothing on screen depends on it.
+   */
+  useEffect(
+    () => () => {
+      queryClient.setQueryData<ChatMessageDTO[]>(messagesQueryKey(PENDING_CONVERSATION_ID), []);
+    },
+    [queryClient]
   );
+
+  return <ChatMessages messages={pending ?? []} />;
 }

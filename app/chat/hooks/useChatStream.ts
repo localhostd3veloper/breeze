@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useCallback } from 'react';
 
+import { messagesQueryKey, PENDING_CONVERSATION_ID } from '@/hooks/use-chat-messages';
 import type { GenUiMode } from '@/lib/genui/schema';
 import type { ChatMessageDTO } from '@/lib/types/conversation';
 import type { StreamEvent } from '@/lib/types/stream';
 
-const MESSAGES_KEY = (id: string) => ['conversations', id, 'messages'];
+const MESSAGES_KEY = messagesQueryKey;
 
 /** Regenerate and edit reuse the router rather than inheriting a forced mode. */
 const DEFAULT_GENUI_MODE: GenUiMode = 'auto';
@@ -189,19 +190,6 @@ export function useChatStream(conversationId?: string) {
       let convId = conversationId;
       const isNewConversation = !convId;
 
-      if (!convId) {
-        const res = await fetch('/api/conversations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: text.slice(0, 100) }),
-        });
-        if (!res.ok) return;
-        const { id } = await res.json();
-        convId = id as string;
-        queryClient.setQueryData<ChatMessageDTO[]>(MESSAGES_KEY(convId), []);
-        router.replace(`/chat/${convId}`);
-      }
-
       const userMsgId = crypto.randomUUID();
       const userMsg: ChatMessageDTO = {
         id: userMsgId,
@@ -211,7 +199,31 @@ export function useChatStream(conversationId?: string) {
         ...(images.length && { images }),
       };
 
-      setMessages(queryClient, convId, (prev) => [...prev, userMsg]);
+      if (convId) {
+        setMessages(queryClient, convId, (prev) => [...prev, userMsg]);
+      } else {
+        // No id yet. Park the message under the pending key so the transcript and
+        // the composer's slide land on this tick rather than after the round trip.
+        setMessages(queryClient, PENDING_CONVERSATION_ID, () => [userMsg]);
+
+        const res = await fetch('/api/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: text.slice(0, 100) }),
+        });
+        if (!res.ok) {
+          // Roll back, which also returns the composer to the centre of the screen.
+          setMessages(queryClient, PENDING_CONVERSATION_ID, () => []);
+          return;
+        }
+        const { id } = await res.json();
+        convId = id as string;
+
+        // Hand the message to the real key before the route swaps, so /chat/[id]
+        // paints the list that is already on screen instead of flashing empty.
+        queryClient.setQueryData<ChatMessageDTO[]>(MESSAGES_KEY(convId), [userMsg]);
+        router.replace(`/chat/${convId}`);
+      }
 
       fetch(`/api/conversations/${convId}/messages`, {
         method: 'POST',

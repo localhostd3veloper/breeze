@@ -4,6 +4,7 @@ import { PlusSquare, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { usePeekLock, useSidebarPeek } from '@/components/sidebar-peek';
 import {
   Command,
   CommandDialog,
@@ -27,7 +28,6 @@ import { useCtrlShortcut } from '@/hooks/use-ctrl-shortcuts';
 import { useSearch } from '@/hooks/use-search';
 
 import { Kbd } from './ui/kbd';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 type Segment = { text: string; highlighted: boolean };
 
@@ -63,10 +63,15 @@ function HighlightText({ text, query }: { text: string; query: string }) {
 
 export function NavMain() {
   const router = useRouter();
-  const { open, setOpenMobile } = useSidebar();
+  const { setOpenMobile } = useSidebar();
+  const { stowNow } = useSidebarPeek();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  // The search dialog is a centred modal; letting the panel slide out from
+  // behind it as it opens reads as a glitch.
+  usePeekLock(searchOpen);
 
   const { data: conversations = [] } = useConversations();
   const { data: searchResults, isFetching } = useSearch(debouncedQuery);
@@ -86,12 +91,15 @@ export function NavMain() {
 
   useCtrlShortcut('k', () => setSearchOpen(true));
 
-  const closeMobile = () => setOpenMobile(false);
+  const dismiss = () => {
+    setOpenMobile(false);
+    stowNow();
+  };
 
   const navigate = (id: string) => {
     router.push(`/chat/${id}`);
     setSearchOpen(false);
-    closeMobile();
+    dismiss();
   };
 
   const hasResults =
@@ -102,56 +110,34 @@ export function NavMain() {
       <SidebarGroup>
         <SidebarGroupLabel>Platform</SidebarGroupLabel>
         <SidebarMenu>
+          {/* No tooltips here any more. They existed for the old icon rail, where
+              a collapsed sidebar showed these as unlabelled icons. The sidebar is
+              offcanvas now: whenever these buttons are on screen so are their
+              labels, so a tooltip could only ever repeat one — or get stranded
+              over the transcript when the panel slid away from under a hovered
+              trigger, which is what it did on ⌘B. */}
           <SidebarMenuItem>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <SidebarMenuButton
-                  onClick={() => {
-                    router.push('/chat');
-                    closeMobile();
-                  }}
-                >
-                  <PlusSquare />
-                  <span>New Chat</span>
-                  {open && (
-                    <Kbd className="text-muted-foreground/70 ml-auto hidden md:inline-flex">
-                      <span className="text-xs">⌘⇧</span>O
-                    </Kbd>
-                  )}
-                </SidebarMenuButton>
-              </TooltipTrigger>
-              {!open && (
-                <TooltipContent className="flex items-center gap-2" side="right">
-                  <span>New Chat</span>
-                  <Kbd className="text-muted-foreground/70 hidden md:inline-flex">
-                    <span className="text-xs">⌘⇧</span>O
-                  </Kbd>
-                </TooltipContent>
-              )}
-            </Tooltip>
+            <SidebarMenuButton
+              onClick={() => {
+                router.push('/chat');
+                dismiss();
+              }}
+            >
+              <PlusSquare />
+              <span>New Chat</span>
+              <Kbd className="text-muted-foreground/70 ml-auto hidden md:inline-flex">
+                <span className="text-xs">⌘⇧</span>O
+              </Kbd>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <SidebarMenuButton onClick={() => setSearchOpen(true)}>
-                  <Search />
-                  <span>Search Chats</span>
-                  {open && (
-                    <Kbd className="text-muted-foreground/70 ml-auto hidden md:inline-flex">
-                      <span className="text-xs">⌘</span>K
-                    </Kbd>
-                  )}
-                </SidebarMenuButton>
-              </TooltipTrigger>
-              {!open && (
-                <TooltipContent className="flex items-center gap-2" side="right">
-                  <span>Search Chats</span>
-                  <Kbd className="text-muted-foreground/70 hidden md:inline-flex">
-                    <span className="text-xs">⌘</span>K
-                  </Kbd>
-                </TooltipContent>
-              )}
-            </Tooltip>
+            <SidebarMenuButton onClick={() => setSearchOpen(true)}>
+              <Search />
+              <span>Search Chats</span>
+              <Kbd className="text-muted-foreground/70 ml-auto hidden md:inline-flex">
+                <span className="text-xs">⌘</span>K
+              </Kbd>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroup>
