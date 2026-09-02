@@ -1,17 +1,17 @@
 import json
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from typing import Any, Iterator
+from typing import Any
 
+from genui_prompt import genui_system_prompt, prompt_token_estimate
+from genui_router import should_render_ui
 from langfuse import propagate_attributes
 from langfuse.openai import OpenAI  # type: ignore[attr-defined]
-from tavily import TavilyClient
-
-from genui_prompt import genui_system_prompt
-from genui_router import should_render_ui
 from models import HistoryMessage, SummarizeRequest
 from models_config import MODELS, resolve_genui_model
 from settings import logger
+from tavily import TavilyClient
 from tools import TOOLS, dispatch_tool
 
 
@@ -72,6 +72,36 @@ class _ReasoningParser:
         return text_out, reasoning_out
 
 
+# Ollama's default context window is 4096 tokens and its OpenAI-compatible
+# endpoint ignores `options.num_ctx`, so the genui path has to budget for it.
+GENUI_MAX_TOKENS = 1536
+GENUI_HISTORY_BUDGET_CHARS = 4000
+
+
+def _trim_history(
+    history: list[HistoryMessage] | None, budget_chars: int
+) -> list[HistoryMessage] | None:
+    """Keep the most recent messages that fit in `budget_chars`.
+
+    Trims from the oldest end, so the turns nearest the question survive. Used
+    only on the genui path — the prose path keeps its existing behaviour.
+    """
+    if not history:
+        return history
+
+    kept: list[HistoryMessage] = []
+    used = 0
+    for msg in reversed(history):
+        cost = len(msg.content) + 16  # +role overhead
+        if used + cost > budget_chars:
+            break
+        kept.append(msg)
+        used += cost
+
+    kept.reverse()
+    return kept
+
+
 def _system_prompt() -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     return (
@@ -94,7 +124,11 @@ def _build_messages(
     if images:
         user_content: Any = [{"type": "text", "text": message}]
         for img in images:
-            url = img if img.startswith(("http://", "https://")) else f"data:image/jpeg;base64,{img}"
+            url = (
+                img
+                if img.startswith(("http://", "https://"))
+                else f"data:image/jpeg;base64,{img}"
+            )
             user_content.append({"type": "image_url", "image_url": {"url": url}})
     else:
         user_content = message
@@ -141,7 +175,6 @@ def _stream_chunks(stream) -> Iterator[str]:
             yield _emit({"type": "text", "content": text})
 
 
-
 def stream_response(
     client: OpenAI,
     tavily: TavilyClient,
@@ -171,32 +204,58 @@ def stream_response(
 
         active_client = client
         system: str | None = None
+        genui_history = history
         if use_genui:
             active_client = ui_client or client
             model = resolve_genui_model()
             system = genui_system_prompt(_system_prompt())
-            logger.info("genui active (model=%s)", model)
+            # The grammar only works if it survives into the model's context.
+            # Ollama's default window is 4096 tokens and it truncates the prompt
+            # from the FRONT, so a long conversation silently evicts the system
+            # prompt and the model then denies being able to render anything.
+            # Trimming history is what keeps the grammar in the window.
+            genui_history = _trim_history(history, GENUI_HISTORY_BUDGET_CHARS)
+            logger.info(
+                "genui active (model=%s, grammar~%d tok, history %d->%d msgs)",
+                model,
+                prompt_token_estimate(),
+                len(history or []),
+                len(genui_history or []),
+            )
 
-        messages = list(_build_messages(message, history, images, system))
+        messages = list(_build_messages(message, genui_history, images, system))
 
         create_kwargs: dict[str, Any] = {
             "metadata": {"model": model},
             "model": model,
             "messages": messages,
             "stream": True,
-            # Widget JSON is verbose; give the genui path the larger budget.
-            "max_tokens": 4096 if (thinking or use_genui) else 2048,
+            # Prompt and completion SHARE Ollama's window, so asking for 4096
+            # completion tokens inside a 4096-token window guarantees the prompt
+            # gets truncated. Widget JSON is verbose but bounded (3 widgets max),
+            # so this is comfortably enough while leaving room for the grammar.
+            "max_tokens": 4096
+            if thinking
+            else (GENUI_MAX_TOKENS if use_genui else 2048),
             "temperature": 0.3,
             "user": user_id,
-            "extra_body": {"enable_thinking": True, "thinking_budget": 1024, "verbosity": "low"}
+            "extra_body": {
+                "enable_thinking": True,
+                "thinking_budget": 1024,
+                "verbosity": "low",
+            }
             if thinking
             else {"verbosity": "low"},
         }
         if web_search:
             create_kwargs["tools"] = TOOLS  # type: ignore[assignment]
 
-        with propagate_attributes(user_id=user_id, session_id=session_id, trace_name="chat.stream_responses"):
-            stream = active_client.with_options(timeout=60).chat.completions.create(**create_kwargs)  # type: ignore[call-overload]
+        with propagate_attributes(
+            user_id=user_id, session_id=session_id, trace_name="chat.stream_responses"
+        ):
+            stream = active_client.with_options(timeout=60).chat.completions.create(
+                **create_kwargs
+            )  # type: ignore[call-overload]
 
         # First pass: stream content to client and accumulate any tool calls.
         tool_calls_acc: dict[int, dict[str, Any]] = {}
@@ -211,7 +270,11 @@ def stream_response(
                 for tc in delta.tool_calls:
                     entry = tool_calls_acc.setdefault(
                         tc.index,
-                        {"id": tc.id or "", "type": tc.type or "function", "function": {"name": "", "arguments": ""}},
+                        {
+                            "id": tc.id or "",
+                            "type": tc.type or "function",
+                            "function": {"name": "", "arguments": ""},
+                        },
                     )
                     if tc.id:
                         entry["id"] = tc.id
@@ -261,16 +324,31 @@ def stream_response(
 
         with ThreadPoolExecutor() as pool:
             futures = {
-                pool.submit(dispatch_tool, tavily, tc["function"]["name"], _safe_json(tc["function"]["arguments"])): tc
+                pool.submit(
+                    dispatch_tool,
+                    tavily,
+                    tc["function"]["name"],
+                    _safe_json(tc["function"]["arguments"]),
+                ): tc
                 for tc in tool_calls_list
             }
-            tool_results: dict[str, str] = {futures[f]["id"]: f.result() for f in as_completed(futures)}
+            tool_results: dict[str, str] = {
+                futures[f]["id"]: f.result() for f in as_completed(futures)
+            }
 
         for tc in tool_calls_list:
-            messages.append({"role": "tool", "tool_call_id": tc["id"], "content": tool_results[tc["id"]]})
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tc["id"],
+                    "content": tool_results[tc["id"]],
+                }
+            )
 
         # Second pass: stream final response incorporating tool results.
-        with propagate_attributes(user_id=user_id, session_id=session_id, trace_name="tools.stream_responses"):
+        with propagate_attributes(
+            user_id=user_id, session_id=session_id, trace_name="tools.stream_responses"
+        ):
             final_stream = client.with_options(timeout=60).chat.completions.create(  # type: ignore[call-overload, arg-type]
                 metadata={"model": model},
                 model=model,
