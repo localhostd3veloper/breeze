@@ -15,8 +15,16 @@ stack several at once, and each paints the composer border with its own accent.
 
 <Callout title="Stacking is allowed; the model is still one model">
   Turning on two modes does not run two models. Selection is a priority order --
-  **images > thinking > web search > default** -- so the highest-priority active
-  mode picks the model. See [model selection](/docs/architecture#model-selection).
+  **images > thinking > evidence > default** -- so the highest-priority active
+  mode picks the model, while features that are not the model (the widget grammar,
+  web evidence) still apply. See
+  [combining modes](/docs/architecture#combining-modes).
+</Callout>
+
+<Callout title="Your switches stick">
+  The composer remembers its modes across messages, navigation and reloads. A
+  message also records the modes it was sent with, so **editing or regenerating
+  it replays that turn as you asked it** rather than as the switches sit now.
 </Callout>
 
 <Tabs items={['Thinking', 'Web search', 'Always visualize', 'Images']}>
@@ -41,12 +49,14 @@ you open it. It is stored with the message, so it is still there on reload.
 Lets the model search the live web and cite its sources.
 
 <Callout type="warn">
-  This is the **only** feature that leaves your machine, and it is off until you
-  switch it on. It also needs `TAVILY_API_KEY` set in `backend/.env` -- without
-  it the toggle is accepted and silently does nothing.
+  This is the **only** feature that leaves your machine. It is **on by default**,
+  though a per-message acquire pass decides whether a search actually runs.
 </Callout>
 
-The full two-pass tool flow is in the [Web search guide](/docs/web-search).
+Tavily is optional: without `TAVILY_API_KEY` search falls back to a keyless
+provider. Retrieved text is sanitised and treated strictly as data -- the full
+flow, and the injection containment, is in the
+[Web search guide](/docs/web-search).
 
 </Tab>
 
@@ -131,6 +141,6 @@ can rename or regenerate a title from the sidebar.
 ## Privacy reminders
 
 - Prompts, replies and images go to your local model.
-- Web search is opt-in and the only network egress.
+- Web search is the only network egress, and retrieved text is contained as data.
 - `/completion` and `/summarize` are rate-limited per IP. See
   [Security](/docs/security#rate-limiting).

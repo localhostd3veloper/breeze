@@ -52,9 +52,11 @@ Browser -> Next.js API routes -> FastAPI backend -> Ollama
   <Folder name="backend">
     <File name="app.py" />
     <File name="chat.py" />
+    <File name="evidence.py" />
     <File name="genui_prompt.py" />
     <File name="genui_router.py" />
     <File name="tools.py" />
+    <File name="webfetch.py" />
   </Folder>
 </Files>
 
@@ -148,24 +150,49 @@ and `/`. The OpenAI SDK is pointed at Ollama's OpenAI-compatible endpoint
 (`OLLAMA_BASE_URL`, default `http://localhost:11434/v1`) -- the SDK is OpenAI's,
 the endpoint is not.
 
+### Two phases: acquire, then answer
+
+Every turn runs as **acquire → answer**. The acquire pass decides whether the web
+is needed and runs the tools; the answer pass writes the reply, receiving any
+results as an evidence block in the user turn rather than as `tool`-role messages.
+
+Keeping them apart is what lets web search and generative UI happen in the *same*
+answer. A tool-role message ties the answer to a tool-calling model, and
+`gemma3:12b` cannot call tools at all -- which is why search used to veto widgets.
+
 ### Model selection
 
-Priority is **images > thinking > web search > default**.
+The answer model is picked *after* acquire, so it follows what actually happened.
+Priority is **images > thinking > evidence > default**.
 
-| Condition      | Model            |
-| -------------- | ---------------- |
-| Default        | `phi4-mini:3.8b` |
-| Images present | `gemma3:12b`     |
-| Thinking mode  | `qwen3:8b`       |
-| Web search     | `qwen2.5:7b`     |
-| Summarisation  | `phi4-mini:3.8b` |
-| Generative UI  | `gemma3:12b`     |
+| Condition               | Model            |
+| ----------------------- | ---------------- |
+| Default                 | `phi4-mini:3.8b` |
+| Images present          | `gemma3:12b`     |
+| Thinking mode           | `qwen3:8b`       |
+| A search actually ran   | `qwen2.5:7b`     |
+| Summarisation           | `phi4-mini:3.8b` |
+| Generative UI           | `gemma3:12b`     |
 
-<Callout title="Priority, not union">
-  Attaching an image while thinking is on gets you the vision model, not both.
-  This is why the [web search guide](/docs/web-search#triggering-it) warns that
-  an image attachment overrides the search-tuned model.
+<Callout title="Evidence, not the toggle">
+  Search is on by default, so keying the model off the *flag* would put every
+  "hi" on the tool-capable model. It keys off `has_evidence` instead -- a turn
+  that needed no search is still answered by the small default model.
 </Callout>
+
+### Combining modes
+
+The four switches are independent, so any combination can arrive.
+`chat._resolve_answer` reconciles them once, in one place:
+
+- **Images pin the model and the client.** A remote generative-UI endpoint may not
+  accept image parts, and dropping your attachment is worse than dropping the
+  widget model. The widget *grammar* still rides along, so "chart what is in this
+  screenshot" works.
+- **Generative UI outranks thinking for the token budget.** Both want the window;
+  a truncated widget spec renders as an error, while truncated reasoning is just
+  shorter.
+- **Evidence decides the model only when nothing above has claimed it.**
 
 ## Streaming
 

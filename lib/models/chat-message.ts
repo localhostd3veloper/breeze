@@ -17,6 +17,12 @@ export interface IChatMessage extends Document {
   images?: string[]; // Array of base64 strings or URLs
   toolCalls?: IToolCall[];
   toolCallId?: string; // If role is 'tool', this links back to the original tool request
+  /** Composer switches this user message was sent with; replayed on edit/regenerate. */
+  modes?: {
+    webSearch: boolean;
+    thinking: boolean;
+    genui: 'auto' | 'on' | 'off';
+  };
   createdAt: Date;
 }
 
@@ -48,6 +54,18 @@ const ChatMessageSchema: Schema = new Schema(
     ],
 
     toolCallId: { type: String },
+
+    // Optional and absent on every message written before this existed, so
+    // edit/regenerate must treat a missing value as "use today's defaults".
+    modes: {
+      type: {
+        webSearch: { type: Boolean, required: true },
+        thinking: { type: Boolean, required: true },
+        genui: { type: String, enum: ['auto', 'on', 'off'], required: true },
+      },
+      required: false,
+      _id: false,
+    },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

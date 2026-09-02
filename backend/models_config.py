@@ -27,15 +27,21 @@ def resolve_genui_model() -> str:
     return settings.ui_model_name or MODELS["genui"]
 
 
-def select_model(thinking: bool, web_search: bool, has_images: bool) -> str:
-    """Pick the right model based on requested capabilities.
+def select_model(thinking: bool, has_images: bool, has_evidence: bool = False) -> str:
+    """Pick the model that will write the answer.
 
-    Priority: images > thinking > web_search > default
+    Priority: images > thinking > evidence > default.
+
+    Note `has_evidence`, not `web_search`. Search is on by default now, so keying
+    the model off the flag would put every "hi" on the heavier tool-capable model.
+    The acquire pass has already run by the time this is called, so the question it
+    answers is whether a search *actually happened* -- a turn that needed no web
+    results is answered by the small default model, as it was before.
     """
     if has_images:
         return MODELS["vision"]
     if thinking:
         return MODELS["thinking"]
-    if web_search:
+    if has_evidence:
         return MODELS["web_search"]
     return MODELS["default"]

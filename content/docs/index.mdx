@@ -10,8 +10,9 @@ feature reaches the internet, and only when you switch it on.
 
 <Callout title="Privacy by default">
   The default model endpoint is `localhost:11434`. Transcripts land in your own
-  MongoDB. Web search is the only feature that leaves your network, and it stays
-  off until you ask for it.
+  MongoDB. Web search is the only feature that leaves your network -- it is on by
+  default, but only the query the model wrote ever crosses the boundary, never
+  your transcript.
 </Callout>
 
 ## Start here
@@ -52,7 +53,7 @@ feature reaches the internet, and only when you switch it on.
 | **Model**         | Ollama, local                                   |
 | **Database**      | MongoDB via Mongoose                            |
 | **Observability** | [Langfuse](/docs/langfuse), optional            |
-| **Web search**    | [Tavily](/docs/web-search), optional and opt-in |
+| **Web search**    | [Tavily](/docs/web-search), on by default, keyless fallback |
 
 ## What you get
 
@@ -66,7 +67,7 @@ feature reaches the internet, and only when you switch it on.
   <Card
     icon={<Globe />}
     title="Web search"
-    description="Tavily, with cited sources. Off until you switch it on."
+    description="Cited sources, on by default, with retrieved text contained."
     href="/docs/web-search"
   />
   <Card

@@ -141,3 +141,35 @@ first try. Two supporting habits:
   `chunk-*.js`; no `.d.ts` or README states it.
 
 Same shape as the lint lesson above: the thing that compiles is not the thing that runs.
+
+## `tasks/todo.md` is an append-only log -- never `cat >` it
+
+**What happened (2026-09-03):** Asked to plan the web-search/genui work, I wrote the
+plan with `cat > tasks/todo.md`, which truncated 605 lines of prior feature history
+(genui, composer revamp, sidebar, blur reveal, Fumadocs) down to my one new section.
+`git diff --stat` showing `764 ++---` is what caught it, not any check I ran first.
+Recovered with `git show HEAD:tasks/todo.md`, then appended under a `---` rule.
+
+**Rule:** `tasks/todo.md` and `tasks/lessons.md` accumulate; each new piece of work is
+a new section at the end, never a replacement. Use `>>`, and before any `>` redirect
+or `Write` to a file that already exists, read it first -- the workflow doc says
+"Document Results", which means adding to the record, not overwriting it. After
+writing a file that existed, check `git diff --numstat` and confirm the deletion
+count is what you intended.
+
+## `pgrep -f "<pattern>"` matches its own command line
+
+**What happened (2026-09-03):** I ran `pgrep -f "next dev" && echo "DEV SERVER
+RUNNING"` to decide whether `bun run build` was safe. It reported a match and I
+skipped the build, told the user their dev server was live, and shipped a docs
+change verified only by `tsc` and `eslint` -- neither of which compiles MDX. There
+was no dev server: `curl localhost:3000` was connection-refused. `pgrep -f`
+matches against full command lines, and the shell wrapper running the pgrep
+contained the string "next dev".
+
+**Rule:** Never infer "a server is running" from `pgrep -f`. Ask the port, which is
+what actually matters: `curl -sf -o /dev/null localhost:3000` or `ss -ltn 'sport =
+:3000'`. Use `pgrep -af` (not `-f` alone) when you do want process output, so a
+self-match is visible rather than silent. More generally, when a check exists to
+gate a _skip_, prefer the check that fails safe -- being wrong here cost the only
+verification that could see the change.

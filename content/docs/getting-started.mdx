@@ -162,8 +162,9 @@ of the window. Raise `OLLAMA_CONTEXT_LENGTH` on the Ollama server, or leave
 
 <Accordion title="The web search toggle does nothing">
 
-`TAVILY_API_KEY` is unset in `backend/.env`. Without it the `web_search` flag is
-accepted and ignored. See the [Web search guide](/docs/web-search#configuration).
+`TAVILY_API_KEY` is unset in `backend/.env`, so searches take the keyless
+fallback -- which is a scrape and can rate-limit. Set the key for reliable
+results. See the [Web search guide](/docs/web-search#configuration).
 
 </Accordion>
 

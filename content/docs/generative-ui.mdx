@@ -109,8 +109,13 @@ plain local path.
 
 </Tabs>
 
-Web-search turns always skip generative UI -- the two-pass tool flow and the
-widget grammar do not compose.
+Generative UI **composes with web search**: "chart the last 10 days of weather in
+Hyderabad" searches and renders a chart in one turn. Search results reach the
+answer as evidence in the user turn rather than as tool messages, so the widget
+model never needs to call a tool. See [Web search](/docs/web-search).
+
+Both compete for the same context window, so on a combined turn history is
+trimmed harder and the evidence block is capped tighter.
 
 ## Rules the model follows
 

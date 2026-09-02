@@ -7,13 +7,18 @@ import { useCallback } from 'react';
 
 import { messagesQueryKey, PENDING_CONVERSATION_ID } from '@/hooks/use-chat-messages';
 import type { GenUiMode } from '@/lib/genui/schema';
-import type { ChatMessageDTO } from '@/lib/types/conversation';
+import type { ChatMessageDTO, MessageModes } from '@/lib/types/conversation';
 import type { StreamEvent } from '@/lib/types/stream';
 
 const MESSAGES_KEY = messagesQueryKey;
 
-/** Regenerate and edit reuse the router rather than inheriting a forced mode. */
+/** What a turn falls back to when it carries no recorded modes. */
 const DEFAULT_GENUI_MODE: GenUiMode = 'auto';
+const DEFAULT_MODES: MessageModes = {
+  webSearch: true,
+  thinking: false,
+  genui: DEFAULT_GENUI_MODE,
+};
 
 function getMessages(qc: ReturnType<typeof useQueryClient>, convId: string): ChatMessageDTO[] {
   return qc.getQueryData<ChatMessageDTO[]>(MESSAGES_KEY(convId)) ?? [];
@@ -77,13 +82,8 @@ export function useChatStream(conversationId?: string) {
    * and persists it to DB. The user message must already be in the cache.
    */
   const streamAssistant = useCallback(
-    async (
-      convId: string,
-      userMsg: UserMessageRef,
-      webSearch: boolean,
-      thinking: boolean,
-      genui: GenUiMode
-    ): Promise<void> => {
+    async (convId: string, userMsg: UserMessageRef, modes: MessageModes): Promise<void> => {
+      const { webSearch, thinking, genui } = modes;
       const now = new Date().toISOString();
       const assistantMsgId = crypto.randomUUID();
 
@@ -182,11 +182,14 @@ export function useChatStream(conversationId?: string) {
   const handleSubmit = useCallback(
     async (
       text: string,
-      webSearch = false,
+      webSearch = true,
       thinking = false,
       images: string[] = [],
       genui: GenUiMode = DEFAULT_GENUI_MODE
     ): Promise<void> => {
+      // Recorded on the message so that editing or regenerating it later replays
+      // the turn as it was asked, not as the composer happens to be set then.
+      const modes: MessageModes = { webSearch, thinking, genui };
       let convId = conversationId;
       const isNewConversation = !convId;
 
@@ -197,6 +200,7 @@ export function useChatStream(conversationId?: string) {
         content: text,
         createdAt: new Date().toISOString(),
         ...(images.length && { images }),
+        modes,
       };
 
       if (convId) {
@@ -228,16 +232,15 @@ export function useChatStream(conversationId?: string) {
       fetch(`/api/conversations/${convId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'user', content: text, ...(images.length && { images }) }),
+        body: JSON.stringify({
+          role: 'user',
+          content: text,
+          ...(images.length && { images }),
+          modes,
+        }),
       });
 
-      await streamAssistant(
-        convId,
-        { id: userMsgId, content: text, images },
-        webSearch,
-        thinking,
-        genui
-      );
+      await streamAssistant(convId, { id: userMsgId, content: text, images }, modes);
 
       if (isNewConversation) {
         fetch(`/api/conversations/${convId}/summarize`, {
@@ -267,12 +270,22 @@ export function useChatStream(conversationId?: string) {
         method: 'DELETE',
       });
 
+      // Editing changes the *text* of a turn, not how it was asked. Both the
+      // modes and any attachments carry over from the message being replaced --
+      // previously this hardcoded "no search, no thinking" and silently dropped
+      // the images, so an edited turn answered a different question.
+      const original = allMessages[msgIndex];
+      const modes = original.modes ?? DEFAULT_MODES;
+      const images = original.images;
+
       const userMsgId = crypto.randomUUID();
       const userMsg: ChatMessageDTO = {
         id: userMsgId,
         role: 'user',
         content: newText,
         createdAt: new Date().toISOString(),
+        ...(images?.length && { images }),
+        modes,
       };
 
       setMessages(queryClient, convId, (prev) => [...prev, userMsg]);
@@ -280,16 +293,15 @@ export function useChatStream(conversationId?: string) {
       fetch(`/api/conversations/${convId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'user', content: newText }),
+        body: JSON.stringify({
+          role: 'user',
+          content: newText,
+          ...(images?.length && { images }),
+          modes,
+        }),
       });
 
-      await streamAssistant(
-        convId,
-        { id: userMsgId, content: newText },
-        false,
-        false,
-        DEFAULT_GENUI_MODE
-      );
+      await streamAssistant(convId, { id: userMsgId, content: newText, images }, modes);
     },
     [conversationId, queryClient, streamAssistant]
   );
@@ -312,6 +324,7 @@ export function useChatStream(conversationId?: string) {
         method: 'DELETE',
       });
 
+      // Regenerating re-asks the same question, so it re-uses that turn's modes.
       await streamAssistant(
         convId,
         {
@@ -319,9 +332,7 @@ export function useChatStream(conversationId?: string) {
           content: precedingUserMsg.content,
           images: precedingUserMsg.images,
         },
-        false,
-        false,
-        DEFAULT_GENUI_MODE
+        precedingUserMsg.modes ?? DEFAULT_MODES
       );
     },
     [conversationId, queryClient, streamAssistant]

@@ -36,6 +36,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     ...(m.images?.length && { images: m.images }),
     ...(m.toolCalls?.length && { toolCalls: m.toolCalls }),
     ...(m.toolCallId && { toolCallId: m.toolCallId }),
+    ...(m.modes && { modes: m.modes }),
     createdAt: (m.createdAt as Date).toISOString(),
   }));
 
@@ -60,7 +61,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { role, content, reasoning, images, toolCalls, toolCallId } = await req.json();
+  const { role, content, reasoning, images, toolCalls, toolCallId, modes } = await req.json();
 
   const message = await ChatMessage.create({
     conversationId: id,
@@ -70,6 +71,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ...(images?.length && { images }),
     ...(toolCalls?.length && { toolCalls }),
     ...(toolCallId && { toolCallId }),
+    ...(modes && { modes }),
   });
 
   await Conversation.findByIdAndUpdate(id, { updatedAt: new Date() });

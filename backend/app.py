@@ -12,7 +12,6 @@ from tavily import TavilyClient
 
 from chat import stream_response, summarize as _summarize
 from models import ChatRequest, SummarizeRequest
-from models_config import select_model
 from settings import logger, settings
 
 # --- Rate limiting ---
@@ -83,14 +82,12 @@ async def completion(
 ):
     user_id = request.headers.get("X-User-Id")
     session_id = request.headers.get("X-Session-Id")
-    model = select_model(body.thinking, body.web_search, bool(body.images))
 
     async def _stream():
         try:
             for event in stream_response(
                 client=request.app.state.openai,
                 tavily=request.app.state.tavily,
-                model=model,
                 message=body.message,
                 history=body.history,
                 web_search=body.web_search,

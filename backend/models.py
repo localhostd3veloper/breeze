@@ -12,7 +12,7 @@ class ChatRequest(BaseModel):
     message: str = Field(min_length=1)
     thinking: bool = False
     history: list[HistoryMessage] = []
-    web_search: bool = False
+    web_search: bool = True
     images: list[str] = []
     genui: Literal["auto", "on", "off"] = "auto"
 

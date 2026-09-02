@@ -77,6 +77,60 @@ Per client IP, via `slowapi`.
 
 Full detail in the [Generative UI guide](/docs/generative-ui).
 
+## Untrusted web content
+
+Search results and fetched pages are attacker-controlled input: a page can carry
+text written specifically to be read by a model. Two surfaces, handled separately.
+
+### Prompt injection
+
+Every retrieved byte passes one choke point, `backend/evidence.py`, so a defence
+added once covers Tavily, the keyless fallback and `fetch_url` alike.
+
+Containment is structural first. Web text is only ever carried in a **user** turn
+-- never a system message, never a `tool` message -- fenced, numbered and
+length-capped, with a standing system-prompt rule that text inside the fence is
+data and never instructions.
+
+On top of that, the sanitiser strips what would let text stop being text:
+
+| Stripped | Why |
+| --- | --- |
+| `<\|im_start\|>` and other control tokens | Would open a forged turn inside the prompt |
+| `<think>` / `</think>` | Would misroute answer text into the reasoning panel |
+| ` ```breeze-ui ` fences | **A page could otherwise inject a widget into an answer** |
+| The evidence fence itself | Content must not be able to close its own quoting |
+| Zero-width and bidi characters | Hide text from a human reviewing the page or log |
+
+<Callout type="warn" title="The widget fence is the one specific to Breeze">
+  A `breeze-ui` fence renders. Without neutralising it, any page the model reads
+  could publish a chart, table or card into an assistant reply.
+</Callout>
+
+### SSRF
+
+`fetch_url` is the only place the backend requests an address a model chose, so
+`backend/webfetch.py` assumes every URL is hostile.
+
+- **Schemes and ports:** http(s) only, ports 80/443 only. No `file://`, and no
+  port 6379 or 11434 -- the Redis or Ollama instance next to the process.
+- **Credentials:** refused in the URL, so nothing leaks to logs and
+  `http://expected.com@attacker.com` cannot pass a human skim.
+- **Addresses:** every DNS answer must be globally routable, blocking loopback,
+  RFC1918, link-local (`169.254.169.254` is the cloud metadata endpoint), CGNAT,
+  multicast and reserved space, in IPv4 and IPv6 including IPv4-mapped. *Every*
+  answer, so a name resolving to both a public address and `127.0.0.1` is refused.
+- **Redirects:** followed by hand, max 3, each hop re-validated -- a public host
+  answering `302 -> http://127.0.0.1:11434` is the standard way past a check that
+  only inspects the URL it was handed.
+- **Resources:** 8s timeout, response capped while streaming (`Content-Length` is
+  attacker-supplied), content-type allowlist.
+- **No credential egress:** no cookies, no auth headers, ever.
+
+HTML is reduced to text by a stdlib parser that drops `script`/`style`, comments,
+and `display:none` / `aria-hidden` elements -- the standard hiding places for
+instructions invisible to a person checking the page.
+
 ## Secrets
 
 Keep these out of version control. The repo's `.gitignore` already excludes
@@ -136,6 +190,24 @@ If you enable tracing, your prompts and completions go to whatever
 ## Known trade-offs
 
 <Accordions type="single">
+
+<Accordion title="DNS rebinding is not defeated">
+
+`fetch_url` resolves a host to validate it, and the HTTP client resolves it again
+to connect. A DNS entry that changes between the two is not caught. Closing it
+means pinning the connection to the validated address through a custom transport.
+The redirect and port guards make the window narrow, and no cookie or auth header
+travels on these requests for a rebound host to collect.
+
+</Accordion>
+
+<Accordion title="The keyless search fallback is a scrape">
+
+Without `TAVILY_API_KEY`, search parses DuckDuckGo's no-JS HTML endpoint. It can
+rate-limit, and it will break if that markup changes. It fails closed to "no
+results", so the answer degrades rather than the turn failing.
+
+</Accordion>
 
 <Accordion title="A stolen JWT stays valid until it expires">
 

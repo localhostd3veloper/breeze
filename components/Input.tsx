@@ -8,7 +8,7 @@ import {
   SparklesIcon,
 } from 'lucide-react';
 import type { CSSProperties } from 'react';
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 
 import {
   Attachment,
@@ -36,6 +36,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import type { GenUiMode } from '@/lib/genui/schema';
+import type { ComposerMode } from '@/store/chat';
+import { useChatStore } from '@/store/chat';
 
 /**
  * Every mode owns one Station accent, and the composer's border wears the accent
@@ -43,14 +45,12 @@ import type { GenUiMode } from '@/lib/genui/schema';
  * the input itself, not only inside the popover you just closed -- and the icon in
  * the popover carries the same colour, so the mapping is learnable.
  */
-const MODE_ACCENT = {
+const MODE_ACCENT: Record<ComposerMode, string> = {
   thinking: 'var(--primary)',
   web: 'var(--series-3)',
   visual: 'var(--brass)',
   images: 'var(--series-5)',
-} as const;
-
-type Mode = keyof typeof MODE_ACCENT;
+};
 
 interface AttachmentItemProps {
   attachment: {
@@ -111,49 +111,57 @@ const Composer = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
   const hasImages = attachments.files.length > 0;
 
   /**
-   * One ordered list rather than a boolean per mode: the order is what tells us
-   * which accent the border should take, and there is nowhere for the two to
-   * disagree.
+   * The switches live in the store, not here: sending the first message navigates
+   * `/chat` -> `/chat/[id]`, which unmounts this composer. Local state meant every
+   * mode the user had just set was silently off again on their second message.
    */
-  const [enabled, setEnabled] = useState<Mode[]>([]);
+  const modes = useChatStore((s) => s.modes);
+  const setMode = useChatStore((s) => s.setMode);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [status, setStatus] = useState<'submitted' | 'streaming' | 'ready' | 'error'>('ready');
 
-  const setMode = useCallback((mode: Mode, on: boolean) => {
-    setEnabled((prev) => {
-      const without = prev.filter((m) => m !== mode);
-      if (on) return [...without, mode];
-      return without.length === prev.length ? prev : without;
-    });
+  // Persisted modes are read after mount rather than at store creation, so the
+  // client's first render matches the server's. See `skipHydration` in the store.
+  useEffect(() => {
+    void useChatStore.persist.rehydrate();
   }, []);
 
   /**
-   * Attaching an image is a mode change too, so it joins the same queue. The
-   * attachments live in the provider, not here, so there is no callback to hang
-   * this off -- we adjust during render on the edge instead of in an effect, so
-   * the border never commits a frame wearing the stale accent.
+   * Attaching an image is a mode change too, and the border should show it -- but
+   * it is derived from the attachment tray rather than switched, so it is tracked
+   * here instead of in the store. Adjusting during render on the edge (rather than
+   * in an effect) means the border never commits a frame wearing a stale accent,
+   * and keeps the store write out of the render pass.
    */
+  const [imagesAreNewest, setImagesAreNewest] = useState(false);
   const [prevHasImages, setPrevHasImages] = useState(false);
   if (prevHasImages !== hasImages) {
     setPrevHasImages(hasImages);
-    setMode('images', hasImages);
+    setImagesAreNewest(hasImages);
   }
 
-  const thinking = enabled.includes('thinking');
-  const webSearch = enabled.includes('web');
+  const thinking = modes.includes('thinking');
+  const webSearch = modes.includes('web');
   /**
    * Off is `auto`, not `off`: the backend router still decides per turn, which is
    * the behaviour that makes the feature feel automatic. The switch only removes
    * the router's veto. Turning it on costs a call to the larger UI model on every
    * turn, so it is not the default.
    */
-  const alwaysVisual = enabled.includes('visual');
+  const alwaysVisual = modes.includes('visual');
 
-  const newestMode = enabled.at(-1);
+  const newestMode = imagesAreNewest && hasImages ? 'images' : modes.at(-1);
   const accent = newestMode ? MODE_ACCENT[newestMode] : 'var(--input)';
   const glow = newestMode ? `color-mix(in oklab, ${accent} 16%, transparent)` : 'transparent';
 
-  const handleToggle = useCallback((mode: Mode) => (on: boolean) => setMode(mode, on), [setMode]);
+  const handleToggle = useCallback(
+    (mode: ComposerMode) => (on: boolean) => {
+      // Whatever was just switched owns the accent, so images stop being newest.
+      setImagesAreNewest(false);
+      setMode(mode, on);
+    },
+    [setMode]
+  );
 
   const handleSubmit = useCallback(
     async (message: PromptInputMessage) => {
@@ -229,7 +237,8 @@ const Composer = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
                 <Switch checked={alwaysVisual} onCheckedChange={handleToggle('visual')} />
               </div>
               <p className="text-muted-foreground text-xs">
-                Leave this off and Breeze decides when a chart or table helps.
+                Leave this off and Breeze decides when a chart or table helps. Web search and
+                visuals now work in the same answer.
               </p>
               {hasImages && (
                 <p className="text-muted-foreground flex items-center gap-2 text-xs">

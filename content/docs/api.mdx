@@ -57,7 +57,7 @@ line.
       default: '[]',
     },
     web_search: {
-      description: 'Enable Tavily web search.',
+      description: 'Allow the acquire pass to search the web. Defaults to true.',
       type: 'boolean',
       default: 'false',
     },
@@ -80,7 +80,7 @@ line.
   "message": "Hello!",
   "thinking": false,
   "history": [{ "role": "user", "content": "Hi" }],
-  "web_search": false,
+  "web_search": true,
   "images": [],
   "genui": "auto"
 }
@@ -151,8 +151,9 @@ for (;;) {
 
 ### Model selection
 
-The backend picks a model per request; priority is
-**images > thinking > web search > default**. The mapping is in the
+The backend picks the answer model *after* the acquire pass, so it follows
+whether a search actually ran; priority is
+**images > thinking > evidence > default**. The mapping is in the
 [Architecture guide](/docs/architecture#model-selection).
 
 ## `POST /summarize`
