@@ -38,7 +38,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
     });
 
     if (result?.error) {
-      setError('Incorrect email or password. Please try again.');
+      setError('That email and password do not match an account on this instance.');
     } else {
       router.push(nextRoute);
       router.refresh();
@@ -56,9 +56,9 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
       <form onSubmit={handleSubmit(onSubmit)}>
         <FieldGroup>
           <div className="mb-4 flex flex-col items-center gap-1 text-center">
-            <h1 className="text-2xl font-bold">Login to your account</h1>
+            <h1 className="type-display text-3xl">Sign in</h1>
             <p className="text-muted-foreground text-sm text-balance">
-              Enter your email below to login to your account
+              Your account lives on this instance and nowhere else.
             </p>
           </div>
 
@@ -110,7 +110,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 
           <Field className="mt-2">
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Logging in...' : 'Login'}
+              {isSubmitting ? 'Signing in…' : 'Sign in'}
             </Button>
           </Field>
 

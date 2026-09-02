@@ -60,9 +60,9 @@ export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
       <form onSubmit={handleSubmit(onSubmit)}>
         <FieldGroup>
           <div className="mb-4 flex flex-col items-center gap-1 text-center">
-            <h1 className="text-2xl font-bold">Create your account</h1>
+            <h1 className="type-display text-3xl">Create an account</h1>
             <p className="text-muted-foreground text-sm text-balance">
-              Fill in the form below to create your account
+              Stored in your own database. Nobody else can see it.
             </p>
           </div>
 
@@ -167,7 +167,7 @@ export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
 
           <Field className="mt-2">
             <Button type="submit" disabled={isSubmitting || success}>
-              {isSubmitting ? 'Creating...' : 'Create Account'}
+              {isSubmitting ? 'Creating account…' : 'Create account'}
             </Button>
           </Field>
 

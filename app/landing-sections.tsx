@@ -6,411 +6,411 @@ import {
   Download,
   Edit3,
   Globe,
+  HardDrive,
   ImageIcon,
-  Keyboard,
-  Lock,
+  Layers,
   type LucideIcon,
+  MessageSquare,
   Pin,
   Search,
-  Server,
-  Shield,
-  Sparkles,
+  Smartphone,
+  User,
   Wand2,
-  Zap,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 
-const coreFeatures: { icon: LucideIcon; title: string; description: string }[] = [
-  {
-    icon: Lock,
-    title: 'Fully Private',
-    description:
-      'Your conversations never leave your infrastructure. No telemetry, no data collection, no cloud dependencies.',
-  },
-  {
-    icon: Zap,
-    title: 'Blazing Fast',
-    description:
-      'Streaming responses with minimal latency. Runs on your own hardware so performance scales with you.',
-  },
-  {
-    icon: Server,
-    title: 'Self-Hosted',
-    description:
-      'Deploy on your own server or locally via Ollama. You own the stack — models, data, and all.',
-  },
-];
+/* ------------------------------------------------------------------ */
+/* Motion: one reveal, used everywhere. Fires once — a section that     */
+/* re-animates every time you scroll past it is noise, not motion.      */
+/* ------------------------------------------------------------------ */
 
-const powerFeatures: {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-}[] = [
-  {
-    icon: Brain,
-    title: 'Advanced Thinking Mode',
-    description:
-      'Watch the model reason step-by-step with a collapsible chain-of-thought for full transparency.',
-  },
-  {
-    icon: Globe,
-    title: 'Live Web Search',
-    description:
-      'Give the model real-time context with toggle-on web search. Sources are automatically cited.',
-  },
-  {
-    icon: ImageIcon,
-    title: 'Image Uploads',
-    description:
-      'Drag and drop images into any conversation. The model sees and analyzes them instantly.',
-  },
-  {
-    icon: Edit3,
-    title: 'Edit & Regenerate',
-    description:
-      'Edit any past message and replay the thread. Regenerate responses until you get the perfect answer.',
-  },
-  {
-    icon: Pin,
-    title: 'Pin Conversations',
-    description:
-      'Keep your most important chats pinned at the top. Never lose track of ongoing work.',
-  },
-  {
-    icon: Download,
-    title: 'Export to Markdown',
-    description: 'Download any conversation as a clean Markdown file. One click, done.',
-  },
-  {
-    icon: Search,
-    title: 'Search Conversations',
-    description: 'Instantly surface any past chat with fuzzy search across your entire history.',
-  },
-  {
-    icon: Keyboard,
-    title: 'Keyboard Shortcuts',
-    description: 'Stay in the flow with power-user shortcuts for every action that matters.',
-  },
-  {
-    icon: Sparkles,
-    title: 'Buttery Animations',
-    description:
-      "Every interaction is smooth and purposeful — more polished than any chat platform you've used.",
-  },
-  {
-    icon: Wand2,
-    title: 'Smart Conversation Titles',
-    description:
-      'Titles are auto-generated after your first message. Regenerate anytime from the sidebar to keep things organized.',
-  },
-];
-
-const shortcuts = [
-  { keys: ['⌘', 'K'], label: 'Search conversations' },
-  { keys: ['⌘', 'B'], label: 'Toggle sidebar' },
-  { keys: ['⌘', '⇧', 'O'], label: 'New chat' },
-];
-
-const steps = [
-  {
-    number: '01',
-    title: 'Sign in',
-    description: 'Create an account on your private Breeze instance.',
-  },
-  {
-    number: '02',
-    title: 'Pick a model',
-    description: 'Choose from any Ollama-compatible LLM running on your server.',
-  },
-  {
-    number: '03',
-    title: 'Start chatting',
-    description: 'Ask anything. Your data stays yours, always.',
-  },
-];
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0 },
+const rise = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const } },
 };
 
-const fadeIn = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1 },
-};
-
-const staggerContainer = (stagger = 0.08) => ({
+const group = (stagger = 0.06) => ({
   hidden: {},
   show: { transition: { staggerChildren: stagger } },
 });
 
-const viewport = { once: false, margin: '-80px' } as const;
+const viewport = { once: true, margin: '-60px' } as const;
 
-function SectionHeading({
-  badge,
-  title,
-  subtitle,
-}: {
-  badge: string;
-  title: string;
-  subtitle?: string;
-}) {
+function SectionHead({ eyebrow, title, lede }: { eyebrow: string; title: string; lede?: string }) {
   return (
-    <motion.div
-      className="mb-14 text-center"
-      variants={fadeUp}
-      initial="hidden"
-      whileInView="show"
-      viewport={viewport}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
-    >
-      <Badge variant="secondary" className="mb-4">
-        {badge}
-      </Badge>
-      <h2 className="text-3xl font-bold tracking-tight md:text-4xl">{title}</h2>
-      {subtitle && <p className="text-muted-foreground mt-3">{subtitle}</p>}
+    <motion.div variants={rise} className="max-w-2xl">
+      <p className="eyebrow">{eyebrow}</p>
+      <h2 className="type-display mt-4 text-[clamp(1.9rem,4.6vw,3.1rem)]">{title}</h2>
+      {lede && <p className="text-muted-foreground mt-4 leading-relaxed">{lede}</p>}
     </motion.div>
   );
 }
 
-export function CoreFeaturesSection() {
+/* ------------------------------------------------------------------ */
+/* Signature: the boundary                                             */
+/*                                                                     */
+/* Every claim here is checked against the code. Inference and title    */
+/* summarisation both hit the Ollama client (backend/app.py), search is */
+/* Tavily and defaults to off (components/Input.tsx), and Langfuse only */
+/* traces when its keys are set.                                       */
+/* ------------------------------------------------------------------ */
+
+type Node = { icon: LucideIcon; label: string; detail: string };
+
+const inside: Node[] = [
+  { icon: User, label: 'You', detail: 'browser' },
+  { icon: MessageSquare, label: 'Breeze', detail: 'Next.js + FastAPI' },
+  { icon: Brain, label: 'The model', detail: 'Ollama · :11434' },
+  { icon: HardDrive, label: 'Transcripts', detail: 'your MongoDB' },
+];
+
+const outside: { label: string; detail: string; marker: string }[] = [
+  {
+    label: 'Web search',
+    detail: 'Tavily, when a reply needs the live web',
+    marker: 'Off by default',
+  },
+  { label: 'Tracing', detail: 'Langfuse, if you set the keys', marker: 'Unset by default' },
+];
+
+export function BoundarySection() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-28">
-      <SectionHeading
-        badge="Built for privacy"
-        title="Your infrastructure, your rules"
-        subtitle="Everything you need. Nothing you don't."
-      />
-
-      <motion.div
-        className="grid gap-6 md:grid-cols-3"
-        variants={staggerContainer(0.1)}
-        initial="hidden"
-        whileInView="show"
-        viewport={viewport}
-      >
-        {coreFeatures.map(({ icon: Icon, title, description }) => (
-          <motion.div
-            key={title}
-            variants={fadeUp}
-            transition={{ duration: 0.45, ease: 'easeOut' }}
-          >
-            <Card className="group border-border/60 bg-card hover:shadow-primary/5 h-full transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg">
-              <CardContent className="p-6">
-                <div className="bg-primary/10 group-hover:bg-primary/15 mb-4 flex h-10 w-10 items-center justify-center rounded-xl transition-colors">
-                  <Icon className="text-primary h-5 w-5" />
-                </div>
-                <h3 className="mb-2 font-semibold">{title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </motion.div>
-    </section>
-  );
-}
-
-export function PowerFeaturesSection() {
-  return (
-    <section className="relative overflow-hidden py-4 pb-28">
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="bg-primary/5 absolute top-1/2 left-1/2 h-150 w-150 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[120px]" />
-      </div>
-
-      <div className="relative mx-auto max-w-6xl px-6">
-        <SectionHeading
-          badge="Power features"
-          title="Built for how you actually work"
-          subtitle="Everything a power user expects — thinking mode, web search, edits, and more."
+    <motion.section
+      variants={group(0.08)}
+      initial="hidden"
+      whileInView="show"
+      viewport={viewport}
+      className="rule-t"
+    >
+      <div className="mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-32">
+        <SectionHead
+          eyebrow="The boundary"
+          title="Here is exactly what leaves."
+          lede="Most private-AI pages ask you to take their word for it. This is the whole map — every part of Breeze, drawn on the honest side of the line."
         />
 
-        <motion.div
-          className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
-          variants={staggerContainer(0.06)}
-          initial="hidden"
-          whileInView="show"
-          viewport={viewport}
-        >
-          {powerFeatures.map(({ icon: Icon, title, description }) => (
+        <motion.div variants={rise} className="mt-16">
+          {/* ---- Inside ---- */}
+          <div className="border-hairline bg-card/60 relative border">
+            <span className="bg-background eyebrow text-foreground absolute -top-[7px] left-5 px-2">
+              Your machine
+            </span>
+            <ul className="grid sm:grid-cols-2 lg:grid-cols-4">
+              {inside.map(({ icon: Icon, label, detail }) => (
+                <li
+                  key={label}
+                  className="border-hairline flex items-start gap-3 border-t p-5 first:border-t-0 lg:border-t-0 lg:border-l lg:first:border-l-0 sm:[&:nth-child(-n+2)]:border-t-0"
+                >
+                  <Icon className="text-primary mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{label}</p>
+                    <p className="readout text-muted-foreground mt-1 text-xs">{detail}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* ---- The crossing ---- */}
+          {/* One wire leaves the box. Drawing it is the whole argument. */}
+          <div className="relative flex flex-col items-center">
+            <span aria-hidden className="border-brass/60 h-10 border-l border-dashed sm:h-12" />
+            <div className="boundary w-full" />
+            <p className="eyebrow text-brass bg-background -mt-[7px] px-3">
+              Crossed only when you switch it on
+            </p>
+            <span
+              aria-hidden
+              className="border-brass/60 mt-1 h-10 border-l border-dashed sm:h-12"
+            />
+          </div>
+
+          {/* ---- Outside ---- */}
+          <div className="border-hairline relative border border-dashed">
+            <span className="bg-background eyebrow text-muted-foreground absolute -top-[7px] left-5 px-2">
+              The internet
+            </span>
+            <ul className="grid sm:grid-cols-2">
+              {outside.map(({ label, detail, marker }) => (
+                <li
+                  key={label}
+                  className="border-hairline flex items-start justify-between gap-4 border-t p-5 first:border-t-0 sm:border-t-0 sm:border-l sm:first:border-l-0"
+                >
+                  <div className="min-w-0">
+                    <p className="text-muted-foreground text-sm font-medium">{label}</p>
+                    <p className="readout text-muted-foreground mt-1 text-xs">{detail}</p>
+                  </div>
+                  <span className="border-brass/40 text-brass eyebrow shrink-0 border px-2 py-1">
+                    {marker}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <p className="text-muted-foreground/80 mt-10 max-w-xl text-sm leading-relaxed">
+            Nothing else is called. Conversation titles are written by the same local model that
+            writes the replies, not by a hosted one.
+          </p>
+        </motion.div>
+      </div>
+    </motion.section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Capabilities — a hairline index, not a wall of rounded cards        */
+/* ------------------------------------------------------------------ */
+
+const capabilities: { icon: LucideIcon; title: string; description: string }[] = [
+  {
+    icon: Brain,
+    title: 'Thinking, shown',
+    description:
+      'Watch the model reason before it answers. The chain of thought collapses out of the way once you have read it.',
+  },
+  {
+    icon: Globe,
+    title: 'Web search',
+    description:
+      'Switch it on for a reply that needs the live web. Sources come back cited. Off until you ask.',
+  },
+  {
+    icon: ImageIcon,
+    title: 'Images',
+    description: 'Drop an image into the thread and the model reads it alongside your text.',
+  },
+  {
+    icon: Edit3,
+    title: 'Edit and replay',
+    description:
+      'Change a message you already sent and the thread runs again from that point. Regenerate any reply.',
+  },
+  {
+    icon: Search,
+    title: 'Search everything',
+    description:
+      'Find any past chat by title or by something said inside it. Matches are highlighted in place.',
+  },
+  {
+    icon: Pin,
+    title: 'Pin what matters',
+    description: 'Keep the threads you are living in at the top of the sidebar.',
+  },
+  {
+    icon: Wand2,
+    title: 'Titles that write themselves',
+    description:
+      'Each thread is named after your first message. Rename or regenerate it from the sidebar.',
+  },
+  {
+    icon: Download,
+    title: 'Export as Markdown',
+    description: 'Take any conversation out as a clean Markdown file. It is your transcript.',
+  },
+  {
+    icon: Smartphone,
+    title: 'Installs like an app',
+    description:
+      'Add Breeze to a phone or dock it in the taskbar. It runs from its own window against your own server.',
+  },
+  {
+    icon: Layers,
+    title: 'Any Ollama model',
+    description: 'Swap models in one config file. If Ollama can pull it, Breeze can talk to it.',
+  },
+];
+
+export function CapabilitiesSection() {
+  return (
+    <motion.section
+      variants={group(0.05)}
+      initial="hidden"
+      whileInView="show"
+      viewport={viewport}
+      className="rule-t bg-card/30"
+    >
+      <div className="mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-32">
+        <SectionHead
+          eyebrow="Instruments"
+          title="Everything you reach for, and nothing you don't."
+        />
+
+        <div className="mt-14 grid md:grid-cols-2">
+          {capabilities.map(({ icon: Icon, title, description }, i) => (
             <motion.div
               key={title}
-              variants={fadeUp}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              variants={rise}
+              className={`rule-t group hover:bg-background flex gap-5 py-6 transition-colors md:px-6 ${
+                i % 2 === 0 ? 'md:pl-0' : 'md:border-hairline md:border-l'
+              }`}
             >
-              <Card className="group border-border/60 bg-card/50 hover:bg-card hover:shadow-primary/5 h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                <CardContent className="p-6">
-                  <div className="bg-primary/10 group-hover:bg-primary/15 mb-4 flex h-9 w-9 items-center justify-center rounded-xl transition-colors">
-                    <Icon className="text-primary h-4 w-4" />
-                  </div>
-                  <h3 className="mb-1.5 text-sm font-semibold">{title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
-                </CardContent>
-              </Card>
+              <Icon
+                className="text-primary mt-0.5 size-4 shrink-0 transition-transform duration-300 group-hover:-translate-y-0.5"
+                strokeWidth={1.75}
+              />
+              <div>
+                <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
+                <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+                  {description}
+                </p>
+              </div>
             </motion.div>
           ))}
-        </motion.div>
+        </div>
       </div>
-    </section>
+    </motion.section>
   );
 }
 
-export function KeyboardShortcutsSection() {
+/* ------------------------------------------------------------------ */
+/* Setup — the one place numbering earns itself, because order matters */
+/* ------------------------------------------------------------------ */
+
+const steps = [
+  {
+    n: '01',
+    title: 'Pull a model',
+    body: 'Point Breeze at any Ollama instance you can reach. Local machine, home server, the box under the desk.',
+    cmd: 'ollama pull qwen3',
+  },
+  {
+    n: '02',
+    title: 'Bring the app up',
+    body: 'Next.js on the front, FastAPI behind it. Both read their config from one env file.',
+    cmd: 'bun run dev',
+  },
+  {
+    n: '03',
+    title: 'Make an account',
+    body: 'Accounts live in your own MongoDB. There is no tenant, no plan, and nobody else on the instance.',
+    cmd: 'open localhost:3000',
+  },
+];
+
+export function SetupSection() {
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-28">
-      <motion.div
-        className="border-border/60 bg-card/50 relative overflow-hidden rounded-3xl border px-8 py-12"
-        variants={fadeUp}
-        initial="hidden"
-        whileInView="show"
-        viewport={viewport}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-      >
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="bg-primary/5 absolute top-0 right-0 h-64 w-64 rounded-full blur-[80px]" />
-        </div>
+    <motion.section
+      variants={group(0.1)}
+      initial="hidden"
+      whileInView="show"
+      viewport={viewport}
+      className="rule-t"
+    >
+      <div className="mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-32">
+        <SectionHead eyebrow="Setup" title="Three steps, in this order." />
 
-        <div className="relative z-10 flex flex-col items-center gap-6 text-center md:flex-row md:items-start md:gap-12 md:text-left">
-          <motion.div
-            className="flex-1"
-            variants={fadeUp}
-            transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}
-          >
-            <div className="mb-3 flex justify-center md:justify-start">
-              <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-xl">
-                <Keyboard className="text-primary h-5 w-5" />
-              </div>
-            </div>
-            <h3 className="mb-2 text-xl font-bold tracking-tight">Keyboard-first design</h3>
-            <p className="text-muted-foreground max-w-sm text-sm">
-              Every action has a shortcut. Stay in the flow without reaching for the mouse.
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="flex flex-wrap justify-center gap-4 md:justify-end"
-            variants={staggerContainer(0.1)}
-            initial="hidden"
-            whileInView="show"
-            viewport={viewport}
-          >
-            {shortcuts.map(({ keys, label }) => (
-              <motion.div
-                key={label}
-                variants={fadeUp}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
-                className="border-border/60 bg-background flex flex-col items-center gap-2 rounded-xl border px-6 py-4"
-              >
-                <div className="flex items-center gap-1">
-                  {keys.map((key, i) => (
-                    <span key={i} className="flex items-center gap-1">
-                      <kbd className="border-border bg-muted text-foreground inline-flex h-7 min-w-7 items-center justify-center rounded-md border px-2 font-mono text-xs font-medium shadow-sm">
-                        {key}
-                      </kbd>
-                      {i < keys.length - 1 && (
-                        <span className="text-muted-foreground text-xs">+</span>
-                      )}
-                    </span>
-                  ))}
-                </div>
-                <span className="text-muted-foreground text-xs">{label}</span>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </motion.div>
-    </section>
-  );
-}
-
-export function HowItWorksSection() {
-  return (
-    <section className="relative overflow-hidden py-28">
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="bg-primary/5 absolute top-1/2 left-0 h-100 w-100 -translate-y-1/2 rounded-full blur-[100px]" />
-        <div className="bg-primary/5 absolute top-1/2 right-0 h-100 w-100 -translate-y-1/2 rounded-full blur-[100px]" />
-      </div>
-
-      <div className="relative mx-auto max-w-6xl px-6">
-        <SectionHeading badge="How it works" title="Up and running in minutes" />
-
-        <motion.div
-          className="grid gap-8 md:grid-cols-3"
-          variants={staggerContainer(0.15)}
-          initial="hidden"
-          whileInView="show"
-          viewport={viewport}
-        >
-          {steps.map(({ number, title, description }) => (
-            <motion.div
-              key={number}
-              variants={fadeUp}
-              transition={{ duration: 0.45, ease: 'easeOut' }}
-              className="flex flex-col items-center text-center transition-transform duration-300 hover:scale-[1.03]"
-            >
-              <div className="border-primary/20 bg-primary/10 mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border">
-                <span className="text-primary font-mono text-sm font-bold">{number}</span>
-              </div>
-              <h3 className="mb-2 font-semibold">{title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
-            </motion.div>
+        <ol className="mt-14 grid gap-px md:grid-cols-3">
+          {steps.map(({ n, title, body, cmd }) => (
+            <motion.li key={n} variants={rise} className="rule-t py-7 md:px-6 md:first:pl-0">
+              <span className="readout text-brass text-xs">{n}</span>
+              <h3 className="type-display mt-3 text-xl">{title}</h3>
+              <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{body}</p>
+              <code className="readout bg-secondary text-foreground mt-5 inline-block px-2.5 py-1.5 text-xs">
+                {cmd}
+              </code>
+            </motion.li>
           ))}
-        </motion.div>
+        </ol>
       </div>
-    </section>
+    </motion.section>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Shortcuts                                                           */
+/* ------------------------------------------------------------------ */
+
+const shortcuts = [
+  { keys: ['⌘', 'K'], label: 'Search conversations' },
+  { keys: ['⌘', 'B'], label: 'Toggle the sidebar' },
+  { keys: ['⌘', '⇧', 'O'], label: 'Start a new chat' },
+];
+
+export function ShortcutsSection() {
+  return (
+    <motion.section
+      variants={group(0.07)}
+      initial="hidden"
+      whileInView="show"
+      viewport={viewport}
+      className="rule-t bg-card/30"
+    >
+      <div className="mx-auto flex max-w-6xl flex-col gap-12 px-5 py-20 sm:px-8 md:flex-row md:items-end md:justify-between">
+        <motion.div variants={rise} className="max-w-sm">
+          <p className="eyebrow">Controls</p>
+          <h2 className="type-display mt-4 text-[clamp(1.7rem,3.6vw,2.4rem)] text-balance">
+            Hands stay on the keys.
+          </h2>
+        </motion.div>
+
+        <motion.ul variants={group(0.07)} className="flex flex-wrap gap-x-10 gap-y-6">
+          {shortcuts.map(({ keys, label }) => (
+            <motion.li key={label} variants={rise} className="flex flex-col gap-2.5">
+              <span className="flex items-center gap-1">
+                {keys.map((key) => (
+                  <kbd
+                    key={key}
+                    className="border-hairline bg-background readout text-foreground inline-flex h-7 min-w-7 items-center justify-center border px-2 text-xs"
+                  >
+                    {key}
+                  </kbd>
+                ))}
+              </span>
+              <span className="text-muted-foreground text-xs">{label}</span>
+            </motion.li>
+          ))}
+        </motion.ul>
+      </div>
+    </motion.section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Close                                                               */
+/* ------------------------------------------------------------------ */
 
 export function CTASection({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-28">
-      <motion.div
-        className="border-primary/20 bg-primary/5 relative overflow-hidden rounded-3xl border px-8 py-16 text-center"
-        variants={fadeIn}
-        initial="hidden"
-        whileInView="show"
-        viewport={viewport}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-      >
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="bg-primary/10 absolute top-1/2 left-1/2 h-75 w-75 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[80px]" />
-        </div>
-
-        <motion.div
-          className="relative z-10 flex flex-col items-center gap-5"
-          variants={fadeUp}
-          transition={{ duration: 0.5, delay: 0.15, ease: 'easeOut' }}
-        >
-          <div className="bg-primary/15 flex h-12 w-12 items-center justify-center rounded-2xl">
-            <Shield className="text-primary h-6 w-6" />
-          </div>
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            Your conversations. Your rules.
+    <motion.section
+      variants={group(0.08)}
+      initial="hidden"
+      whileInView="show"
+      viewport={viewport}
+      className="rule-t"
+    >
+      <div className="mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-32">
+        <motion.div variants={rise} className="max-w-2xl">
+          <p className="eyebrow">Take it home</p>
+          <h2 className="type-display mt-4 text-[clamp(2rem,5.4vw,3.6rem)]">
+            Run it on your own hardware.
           </h2>
-          <p className="text-muted-foreground max-w-md">
-            Join Breeze and experience AI chat the way it should be — fast, private, and completely
-            under your control.
+          <p className="text-muted-foreground mt-5 max-w-lg leading-relaxed">
+            Clone it, point it at your model, and the whole thing is yours — transcripts, accounts,
+            and the machine doing the thinking.
           </p>
-          {isLoggedIn ? (
-            <Link href="/chat">
-              <Button size="lg" className="mt-2 gap-2 px-8">
-                Go to app <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          ) : (
-            <Link href="/signup">
-              <Button size="lg" className="mt-2 gap-2 px-8">
-                Get started free <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          )}
+
+          <div className="mt-9 flex flex-wrap items-center gap-3">
+            <Button asChild size="lg" className="gap-2 rounded-none px-7">
+              <Link href={isLoggedIn ? '/chat' : '/signup'}>
+                {isLoggedIn ? 'Open Breeze' : 'Start chatting'} <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="rounded-none px-7">
+              <Link
+                href="https://github.com/localhostd3veloper/breeze"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Read the source
+              </Link>
+            </Button>
+          </div>
         </motion.div>
-      </motion.div>
-    </section>
+      </div>
+    </motion.section>
   );
 }

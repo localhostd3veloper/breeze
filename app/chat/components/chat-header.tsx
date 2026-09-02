@@ -17,10 +17,12 @@ export function ChatHeader() {
 
   return (
     <header className="static top-0 right-0 left-0 z-10 flex items-center justify-between border-b p-3 lg:absolute lg:w-full lg:border-none">
-      <div className="logo font-satisfy flex items-center text-lg md:text-xl">
+      <div className="type-wordmark flex items-center text-lg md:text-xl">
         <SidebarTrigger className="md:hidden" />
         <Tooltip>
-          <TooltipTrigger className="flex gap-1">Breeze.</TooltipTrigger>
+          <TooltipTrigger className="flex gap-1">
+            Breeze<span className="text-primary">.</span>
+          </TooltipTrigger>
           <TooltipContent side="right" className="flex items-center gap-0.5">
             Made with <Heart className="text-destructive size-3" /> by
             <Link href="https://github.com/localhostd3veloper" target="_blank">

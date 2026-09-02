@@ -1,13 +1,7 @@
 'use client';
 
-import {
-  BadgeCheckIcon,
-  BellIcon,
-  ChevronsUpDownIcon,
-  CreditCardIcon,
-  LogOutIcon,
-  SparklesIcon,
-} from 'lucide-react';
+import { ChevronsUpDownIcon, CodeIcon, LifeBuoyIcon, LogOutIcon } from 'lucide-react';
+import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -88,25 +82,28 @@ export function NavUser() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {/* Only destinations that exist. This is a self-hosted instance —
+                there is no plan to upgrade and nothing to bill. */}
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <SparklesIcon />
-                Upgrade to Pro
+              <DropdownMenuItem asChild>
+                <Link
+                  href="https://github.com/localhostd3veloper/breeze"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <CodeIcon />
+                  Source code
+                </Link>
               </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheckIcon />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCardIcon />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <BellIcon />
-                Notifications
+              <DropdownMenuItem asChild>
+                <Link
+                  href="https://github.com/localhostd3veloper/breeze/issues/new"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <LifeBuoyIcon />
+                  Report a problem
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

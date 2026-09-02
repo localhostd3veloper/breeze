@@ -1,10 +1,13 @@
+/**
+ * Empty-state greetings. Each one is an opening someone can answer — an empty
+ * screen is an invitation to act, so none of these are mood-setting filler.
+ */
 export const emptyStateMessages = [
-  'How can I help?',
-  "What's on the agenda?",
-  'Ready when you are.',
+  'What are we working on?',
+  'Where do you want to start?',
   'Ask me anything.',
-  'What are we building today?',
-  "What's on your mind?",
-  'How can I assist you?',
-  'Let\u2019s get to work.',
+  "What's the problem?",
+  'Pick up where you left off, or start fresh.',
+  'Ready when you are.',
+  'What do you need to figure out?',
 ];

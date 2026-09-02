@@ -2,7 +2,7 @@ import './globals.css';
 
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
-import { Geist_Mono, Manrope } from 'next/font/google';
+import { Archivo, Geist_Mono, Manrope } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 
 import { GlobalShortcuts } from '@/components/global-shortcuts';
@@ -19,9 +19,19 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+// Display face. The `wdth` axis is the reason for this choice — set wide, Archivo
+// reads like signage stencilled on an instrument panel rather than another UI sans.
+const archivo = Archivo({
+  variable: '--font-archivo',
+  subsets: ['latin'],
+  // No `weight` — declaring extra axes requires the full variable range,
+  // which is what we want anyway: `wdth` is set per-class in globals.css.
+  axes: ['wdth'],
+});
+
 const APP_NAME = 'Breeze';
 const APP_DESCRIPTION =
-  'Breeze is a fast, private AI chat assistant powered by self-hosted LLMs. Chat with powerful language models without sending data to the cloud.';
+  'Breeze is an AI chat app you host yourself. Prompts and replies go to a model running on your own hardware, not to a vendor.';
 const APP_URL = process.env.NEXTAUTH_URL ?? 'https://breeze.local';
 
 export const metadata: Metadata = {
@@ -90,7 +100,9 @@ export default async function RootLayout({
   await dbConnect();
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${manrope.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body
+        className={`${manrope.variable} ${geistMono.variable} ${archivo.variable} font-sans antialiased`}
+      >
         <Analytics />
         <ServiceWorkerRegistration />
         <ThemeProvider
