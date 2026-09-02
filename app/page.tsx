@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, BookOpenIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
@@ -62,12 +62,12 @@ export default async function Page() {
           </Link>
 
           <div className="flex items-center gap-1.5">
-            <Link
-              href="/docs"
-              className="text-muted-foreground hover:text-foreground eyebrow mr-2 hidden transition-colors sm:inline"
-            >
-              Docs
-            </Link>
+            <Button asChild size="sm" variant="outline" className="gap-1.5 rounded-none">
+              <Link href="/docs">
+                <BookOpenIcon className="size-3.5" />
+                Docs
+              </Link>
+            </Button>
             <Link
               href="https://github.com/localhostd3veloper/breeze"
               target="_blank"
