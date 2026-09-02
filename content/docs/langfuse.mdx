@@ -4,62 +4,101 @@ description: LLM observability and trace attribution in Breeze.
 icon: lucide:activity
 ---
 
-# Langfuse
-
 Langfuse gives you end-to-end observability over every LLM call. Breeze wraps
-its OpenAI client with Langfuse's auto-instrumentation, so every chat stream
-and summary shows up in your project **without any code changes**.
+its OpenAI client with Langfuse's auto-instrumentation, so chat streams and
+summaries show up in your project **without any code changes**.
 
-## How it works
-
-Breeze imports the OpenAI SDK through `langfuse.openai`. That wrapper
-automatically records each model call as a trace. The LLM layer is therefore
-instrumented even when you have not set a Langfuse project, in which case a
-no-op tracer steps in and nothing is sent.
+<Callout title="Instrumented either way">
+  Breeze imports the OpenAI SDK through `langfuse.openai`, so the LLM layer is
+  always wrapped. With no keys set, a no-op tracer steps in and nothing is sent.
+  Turning tracing on is purely a matter of adding credentials.
+</Callout>
 
 ## Configuration
 
-Add the Langfuse credentials to `backend/.env`:
+<Steps>
 
-```bash
+<Step>
+
+### Add the credentials
+
+```bash title="backend/.env"
 LANGFUSE_SECRET_KEY=
 LANGFUSE_PUBLIC_KEY=
 LANGFUSE_BASE_URL=   # e.g. https://cloud.langfuse.com
 ```
 
-Breeze only enables tracing when **both** the secret and public keys are set.
-If they are missing, you will see a warning about tracing being disabled.
+Tracing is enabled only when **both** the secret and public keys are present.
+If either is missing you get a warning that tracing is disabled, and the app
+runs normally.
 
-## Trace attribution
+</Step>
 
-Two optional HTTP headers pass user and session context from the Next.js
-proxy to the backend:
+<Step>
 
-- `X-User-Id` attributes the trace to the signed-in user.
-- `X-Session-Id` groups traces for one conversation into a session.
+### Check the attribution headers
+
+Two optional headers carry user and session context from the Next.js proxy to
+the backend:
+
+| Header         | Effect                                                |
+| -------------- | ----------------------------------------------------- |
+| `X-User-Id`    | Attributes the trace to the signed-in user.           |
+| `X-Session-Id` | Groups one conversation's traces into a session.      |
 
 `/api/chat` reads these off the incoming request and re-adds them on the
-upstream call, so they survive the proxy hop. The frontend sets them from the
-NextAuth session and the conversation id.
+upstream call so they survive the proxy hop. The frontend sets them from the
+NextAuth session and the conversation id -- there is nothing to wire up.
+
+</Step>
+
+<Step>
+
+### Send a message
+
+Open a conversation and send anything. The trace appears in your Langfuse
+project under the name below.
+
+</Step>
+
+</Steps>
 
 ## What is traced
 
-- **Chat streaming** runs under the trace name `chat.stream_responses`, with
-  the user id and session id attached via `propagate_attributes`.
-- **Web-search tool calls** run under `tools.stream_responses` on the second
-  pass, so you can see the search round trip and the final answer as one flow.
-- **Summarisation** is traced through the wrapped client.
+| Trace name              | Covers                                                        |
+| ----------------------- | ------------------------------------------------------------- |
+| `chat.stream_responses` | Chat streaming, with user and session id attached via `propagate_attributes`. |
+| `tools.stream_responses` | The second pass of a [web-search turn](/docs/web-search#how-a-search-turn-works), so the search round trip and final answer read as one flow. |
+| *(wrapped client)*      | Summarisation, through the same instrumented OpenAI client.   |
 
-## What you can do with it
+## What you get out of it
 
-- See model, latency, and token usage per reply.
-- Follow a single turn from prompt to tool call to final answer.
-- Attribute usage to a user and a conversation.
-- Debug why a reply skipped generative UI or fell back models.
+<Cards>
+  <Card
+    title="Latency and tokens per reply"
+    description="Model, duration and usage for every call."
+  />
+  <Card
+    title="One turn end to end"
+    description="Prompt, tool call, search results and final answer in a single trace."
+  />
+  <Card
+    title="Attribution"
+    description="Usage grouped by user and by conversation."
+  />
+  <Card
+    title="Routing decisions"
+    description="Why a reply skipped generative UI, or fell back to another model."
+  />
+</Cards>
 
 ## Caveats
 
-- Ollama silently ignores `options.num_ctx`, so token counts and context
-  limits are what the model actually used, not what the request asked for.
-- The Langfuse credentials in your local `.env` are live secrets. Keep them
-  out of version control.
+<Callout type="warn">
+  Ollama silently ignores `options.num_ctx`, so the token counts you see are what
+  the model actually used -- not what the request asked for. This is the same
+  quirk behind [the context-window trap](/docs/generative-ui#the-context-window-trap).
+</Callout>
+
+The Langfuse credentials in your local `.env` are live secrets. Keep them out of
+version control -- see [Security](/docs/security#secrets).

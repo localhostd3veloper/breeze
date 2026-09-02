@@ -4,94 +4,161 @@ description: Auth, API keys, rate limits, and the safe generative UI model.
 icon: lucide:shield
 ---
 
-# Security
-
 Breeze treats the backend as a private service and checks every access at the
-right layer. This page documents the guarantees and the defaults you should
-harden in production.
+layer that owns it. This page documents the guarantees, and the defaults you
+should harden before it faces anything but localhost.
+
+<Callout title="The defaults are tuned for one person on one machine">
+  They are not wrong, but they assume a trusted network. The
+  [production hardening](#production-hardening) section is the part to read
+  before you expose this.
+</Callout>
 
 ## Authentication
 
-Breeze uses **NextAuth** with the Credentials provider and JWT sessions.
+NextAuth with the Credentials provider and JWT sessions.
 
-- Passwords are hashed with `bcryptjs` at cost factor 12. Signups require a
+- Passwords are hashed with `bcryptjs` at cost factor 12. Signup requires a
   name, a valid email, and a password of at least 8 characters.
-- Emails are normalized to lowercase at signup and on lookup.
-- Session tokens are **stateless JWTs** signed with `NEXTAUTH_SECRET`; nothing
+- Emails are normalised to lowercase at signup and on lookup.
+- Session tokens are **stateless JWTs** signed with `NEXTAUTH_SECRET`. Nothing
   is stored in a session database.
 - Every protected API route calls `getServerSession(authOptions)` and returns
-  `401` when there is no session.
+  `401` without a session.
 
 ### Ownership checks
 
-Conversations are scoped to the signed-in user. Every CRUD route enforces
-ownership:
+Conversations are scoped to the signed-in user, and every CRUD route enforces it.
 
-- A request for another user's conversation returns `403`.
-- A request for a missing conversation returns `404`.
+| Situation                        | Response |
+| -------------------------------- | -------- |
+| No session                       | `401`    |
+| Another user's conversation      | `403`    |
+| Missing conversation             | `404`    |
 
 Zod validates `PATCH` bodies with a strict schema that rejects unknown fields,
-and message deletion validates the `fromId` as a Mongo `ObjectId`.
+and message deletion validates `fromId` as a Mongo `ObjectId`.
 
 ## Service-to-service auth
 
-The FastAPI backend is not exposed to the browser. Requests go through Next.js
-API routes, which add the `X-API-Key` header. The backend compares it against
-`API_KEY` using a constant-time comparison and returns `401` on mismatch.
+The FastAPI backend is never exposed to the browser. Requests go through the
+Next.js API routes, which add the `X-API-Key` header. The backend compares it
+against `API_KEY` with a **constant-time** comparison and returns `401` on any
+mismatch.
 
-Only `/completion` and `/summarize` are protected; `/` and `/health` are open
-by design.
+| Endpoint      | Protected |
+| ------------- | --------- |
+| `/completion` | Yes       |
+| `/summarize`  | Yes       |
+| `/`           | No, by design |
+| `/health`     | No, by design |
 
 ## Rate limiting
 
-The backend rate-limits per client IP with `slowapi`:
+Per client IP, via `slowapi`.
 
-| Endpoint    | Limit     |
-| ----------- | --------- |
+| Endpoint      | Limit     |
+| ------------- | --------- |
 | `/completion` | 10/minute |
 | `/summarize`  | 20/minute |
 
 ## Generative UI safety
 
-The model emits **data, never JSX**.
+<Callout title="The model emits data, never JSX">
+  Nothing the model produces is ever evaluated.
+</Callout>
 
-- Widget specs are validated against a closed, compile-time whitelist
-  (`lib/genui/schema.ts`) using zod.
-- An unknown widget `type` renders as collapsed JSON; nothing is evaluated.
-- Component dispatch is an exhaustive type-safe switch, not a lookup from a
-  model-supplied string.
-- Chart colours come from a validated fixed palette, not free-form input.
+- Widget specs are zod-validated against a closed, compile-time whitelist in
+  `lib/genui/schema.ts`.
+- An unknown widget `type` renders as collapsed JSON.
+- Component dispatch is an exhaustive, type-safe switch -- not a lookup keyed on
+  a model-supplied string.
+- Chart colours come from a validated fixed palette, not from model output.
+
+Full detail in the [Generative UI guide](/docs/generative-ui).
 
 ## Secrets
 
-Keep these out of version control. The repo's `.gitignore` excludes
+Keep these out of version control. The repo's `.gitignore` already excludes
 `.env` and `.env.local`.
 
-- `NEXTAUTH_SECRET` signs your JWT tokens.
-- `OLLAMA_API_KEY` / `API_KEY` is the shared service secret.
-- `TAVILY_API_KEY` is the web-search credential.
-- Langfuse keys control access to your traces.
+| Secret                          | Protects                          |
+| ------------------------------- | --------------------------------- |
+| `NEXTAUTH_SECRET`               | Signs your JWT session tokens.    |
+| `OLLAMA_API_KEY` / `API_KEY`    | The shared frontend-backend key.  |
+| `TAVILY_API_KEY`                | Your [web search](/docs/web-search) credential. |
+| `LANGFUSE_*`                    | Access to your [traces](/docs/langfuse). |
 
 ## Production hardening
 
-These defaults are reasonable for local use but worth locking down in
-production:
+<Steps>
 
-1. **Put the backend behind your reverse proxy** so `/completion` is only
-   reachable from the Next.js process, not the public internet.
-2. **Rate limits are keyed by IP.** Behind a load balancer, forward the real
-   client IP or the limit applies to the proxy.
-3. **There are no explicit security headers** (CSP, HSTS, etc.) in
-   `next.config.ts`. Add a `headers()` block or use a platform such as Vercel
-   to set them.
-4. **The journal of traces.** If you enable Langfuse, confirm the project keys
-   and base URL point at the deployment you control. See the
-   [Langfuse](/docs/langfuse) guide.
+<Step>
+
+### Put the backend behind your reverse proxy
+
+`/completion` should be reachable from the Next.js process only, not from the
+public internet. The API key is a second line of defence, not the first.
+
+</Step>
+
+<Step>
+
+### Forward the real client IP
+
+Rate limits are keyed by IP. Behind a load balancer, every request looks like it
+came from the proxy, so the limit applies to the proxy as a whole rather than
+per user.
+
+</Step>
+
+<Step>
+
+### Add security headers
+
+There is **no** `headers()` block in `next.config.ts` -- no CSP, no HSTS. Add
+one, or terminate on a platform that sets them for you.
+
+</Step>
+
+<Step>
+
+### Point Langfuse at a deployment you control
+
+If you enable tracing, your prompts and completions go to whatever
+`LANGFUSE_BASE_URL` names. Confirm it is yours. See
+[Langfuse](/docs/langfuse#configuration).
+
+</Step>
+
+</Steps>
 
 ## Known trade-offs
 
-- There is no server-side session store; a stolen JWT is valid until it
-  expires. Set a sensible session lifetime with `NEXTAUTH_SECRET` and rotate it
-  if you suspect leakage.
-- The chat endpoints are authenticated with a single static header key. For a
-  many-client setup, consider per-client keys via a trusted downstream proxy.
+<Accordions type="single">
+
+<Accordion title="A stolen JWT stays valid until it expires">
+
+There is no server-side session store, so a leaked token cannot be revoked
+individually. Set a sensible session lifetime, and rotate `NEXTAUTH_SECRET` if
+you suspect leakage -- that invalidates every session at once.
+
+</Accordion>
+
+<Accordion title="One static key for every client">
+
+The chat endpoints authenticate with a single shared header key. For a
+many-client setup, issue per-client keys at a trusted downstream proxy rather
+than widening this one.
+
+</Accordion>
+
+<Accordion title="Open /health and /">
+
+Both are unauthenticated on purpose, so a load balancer can probe them. They
+expose only a status string, but they do confirm the service exists -- keep the
+backend off the public internet and it does not matter.
+
+</Accordion>
+
+</Accordions>

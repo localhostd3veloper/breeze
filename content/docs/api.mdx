@@ -4,89 +4,114 @@ description: The FastAPI endpoints Breeze exposes and how to call them.
 icon: lucide:terminal
 ---
 
-# API Reference
+Breeze exposes a small FastAPI backend. Protected endpoints require an
+`X-API-Key` header matching your configured `API_KEY`.
 
-Breeze exposes a small FastAPI backend. The protected endpoints require the
-`X-API-Key` header to match your configured `API_KEY`.
-
-The optional `X-User-Id` and `X-Session-Id` headers are forwarded to Langfuse
-for trace attribution. See the [Langfuse guide](/docs/langfuse).
+<Callout title="You usually do not call this directly">
+  In a normal install the Next.js routes proxy the backend for you and add the
+  key. See [using it through Next.js](#using-it-through-nextjs).
+</Callout>
 
 ## Endpoints at a glance
 
-| Method | Path          | Auth      | Rate limit | Purpose                 |
-| ------ | ------------- | --------- | ---------- | ------------------------ |
-| `GET`  | `/`           | none      | none       | Service status.         |
-| `GET`  | `/health`     | none      | none       | Liveness check.         |
-| `POST` | `/completion` | `X-API-Key` | 10/minute  | Stream an LLM reply.    |
+| Method | Path          | Auth        | Rate limit | Purpose                      |
+| ------ | ------------- | ----------- | ---------- | ---------------------------- |
+| `GET`  | `/`           | none        | none       | Service status.              |
+| `GET`  | `/health`     | none        | none       | Liveness check.              |
+| `POST` | `/completion` | `X-API-Key` | 10/minute  | Stream an LLM reply.         |
 | `POST` | `/summarize`  | `X-API-Key` | 20/minute  | Create a conversation title. |
 
 ### Headers
 
-| Header          | Required | Description                                   |
-| --------------- | -------- | --------------------------------------------- |
-| `X-API-Key`     | Protected endpoints | The shared service secret (`API_KEY`). |
-| `X-User-Id`     | optional | Langfuse user attribution.                    |
-| `X-Session-Id`  | optional | Langfuse session attribution.                 |
-| `Content-Type`  | `POST`   | `application/json`.                           |
+| Header         | Required            | Description                            |
+| -------------- | ------------------- | -------------------------------------- |
+| `X-API-Key`    | Protected endpoints | The shared service secret (`API_KEY`). |
+| `Content-Type` | `POST`              | `application/json`.                    |
+| `X-User-Id`    | optional            | Langfuse user attribution.             |
+| `X-Session-Id` | optional            | Langfuse session attribution.          |
 
 `Message` throughout is `{ role: 'user' | 'assistant', content: string }`.
 
-## `GET /`
-
-Service status.
-
-```json
-{ "status": "ok", "message": "Breeze Chat API is running" }
-```
-
-## `GET /health`
-
-Liveness check.
-
-```json
-{ "status": "ok" }
-```
-
 ## `POST /completion`
 
-Stream an LLM response as **NDJSON** (`application/x-ndjson`), one
-`StreamEvent` per line.
+Streams a reply as **NDJSON** (`application/x-ndjson`), one `StreamEvent` per
+line.
 
 ### Request body
 
-```json
+<TypeTable
+  type={{
+    message: {
+      description: "The user's prompt.",
+      type: 'string',
+      required: true,
+    },
+    thinking: {
+      description: 'Enable reasoning output.',
+      type: 'boolean',
+      default: 'false',
+    },
+    history: {
+      description: 'Prior messages for context.',
+      type: 'Message[]',
+      default: '[]',
+    },
+    web_search: {
+      description: 'Enable Tavily web search.',
+      type: 'boolean',
+      default: 'false',
+    },
+    images: {
+      description:
+        'Image references or base64 data, without the `data:...;base64,` prefix.',
+      type: 'string[]',
+      default: '[]',
+    },
+    genui: {
+      description: 'Whether the reply may embed generative UI.',
+      type: "'auto' | 'on' | 'off'",
+      default: "'auto'",
+    },
+  }}
+/>
+
+```json title="Request"
 {
   "message": "Hello!",
   "thinking": false,
-  "history": [ { "role": "user", "content": "Hi" } ],
+  "history": [{ "role": "user", "content": "Hi" }],
   "web_search": false,
   "images": [],
   "genui": "auto"
 }
 ```
 
-| Property     | Type                  | Description                              |
-| ------------ | --------------------- | ---------------------------------------- |
-| `message`    | `string`              | The user's prompt. Required.             |
-| `thinking`   | `boolean`             | Enable reasoning output. Default `false`. |
-| `history`    | `Message[]`           | Prior messages for context. Default `[]`. |
-| `web_search` | `boolean`             | Enable Tavily web search. Default `false`. |
-| `images`     | `string[]`            | Optional image references or base64 data (without the `data:...;base64,` prefix). |
-| `genui`      | `'auto' \| 'on' \| 'off'` | Whether the reply may embed generative UI. Default `'auto'`. |
-
 ### Stream events
 
-Each NDJSON line is one of:
+Each NDJSON line is one `StreamEvent`.
 
-| Type        | Content                      |
-| ----------- | ---------------------------- |
-| `text`      | A chunk of the reply text.   |
-| `reasoning` | A chunk of reasoning output. |
-| `done`      | Signals the stream is complete. |
-| `error`     | An error message.            |
+```ts title="lib/types/stream.ts"
+{ type: 'text' | 'reasoning' | 'done' | 'error', content: string }
+```
+
+| Type        | Content                        |
+| ----------- | ------------------------------ |
+| `text`      | A chunk of the reply text.     |
+| `reasoning` | A chunk of reasoning output.   |
+| `done`      | The stream is complete.        |
+| `error`     | An error message.              |
+
+<Callout type="warn" title="Widgets do not arrive as their own event">
+  A generative UI spec rides inside `text` as a fenced ` ```breeze-ui ` block.
+  There is no widget event type to handle. See
+  [Generative UI](/docs/generative-ui#the-mechanism).
+</Callout>
 
 ### Example
+
+<Tabs items={['curl', 'TypeScript']}>
+
+<Tab value="curl">
 
 ```bash
 curl -N -X POST http://localhost:8000/completion \
@@ -95,38 +120,112 @@ curl -N -X POST http://localhost:8000/completion \
   -d '{"message": "Hello!", "thinking": false}'
 ```
 
+</Tab>
+
+<Tab value="TypeScript">
+
+```ts
+const res = await fetch('http://localhost:8000/completion', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': process.env.API_KEY!,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ message: 'Hello!', thinking: false }),
+});
+
+const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+for (;;) {
+  const { value, done } = await reader.read();
+  if (done) break;
+  for (const line of value.split('\n').filter(Boolean)) {
+    const event = JSON.parse(line);
+    if (event.type === 'text') process.stdout.write(event.content);
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
 ### Model selection
 
-The backend picks a model based on the request; priority is
-**images > thinking > web search > default**. See the
-[Architecture guide](/docs/architecture) for the mapping.
+The backend picks a model per request; priority is
+**images > thinking > web search > default**. The mapping is in the
+[Architecture guide](/docs/architecture#model-selection).
 
 ## `POST /summarize`
 
-Generate a conversation title from its messages.
+Generates a conversation title from its messages. The title is a short phrase,
+four words or fewer.
 
-### Request body
+<TypeTable
+  type={{
+    history: {
+      description: 'The messages to title.',
+      type: 'Message[]',
+      required: true,
+    },
+  }}
+/>
+
+<Tabs items={['Request', 'Response']}>
+
+<Tab value="Request">
 
 ```json
-{ "history": [ { "role": "user", "content": "Hi" } ] }
+{ "history": [{ "role": "user", "content": "Hi" }] }
 ```
 
-| Property  | Type        | Description            |
-| --------- | ----------- | ---------------------- |
-| `history` | `Message[]` | The messages to title. Required. |
+</Tab>
 
-### Response
+<Tab value="Response">
 
 ```json
 { "title": "Talking about weather" }
 ```
 
-The title is a short phrase, four words or fewer.
+</Tab>
+
+</Tabs>
+
+## Status endpoints
+
+<Accordions type="single">
+
+<Accordion title="GET / -- service status">
+
+```json
+{ "status": "ok", "message": "Breeze Chat API is running" }
+```
+
+</Accordion>
+
+<Accordion title="GET /health -- liveness check">
+
+```json
+{ "status": "ok" }
+```
+
+</Accordion>
+
+</Accordions>
+
+Both are unauthenticated by design, so a load balancer can probe them. See
+[Security](/docs/security#service-to-service-auth).
 
 ## Using it through Next.js
 
-In a normal install you never call FastAPI directly. The Next.js routes
-`/api/chat`, `/api/conversations/:id/summarize`, and `/api/health` proxy the
-backend, adding the `X-API-Key` header and forwarding `X-User-Id` and
-`X-Session-Id` for you. `/api/chat` streams the NDJSON body straight through,
-and on an upstream error it emits a single `error` event.
+In a normal install you never call FastAPI directly. These routes proxy it,
+adding `X-API-Key` and forwarding `X-User-Id` and `X-Session-Id` for you:
+
+| Next.js route                          | Proxies                    |
+| -------------------------------------- | -------------------------- |
+| `/api/chat`                            | `POST /completion`         |
+| `/api/conversations/:id/summarize`     | `POST /summarize`          |
+| `/api/health`                          | `GET /health`              |
+
+`/api/chat` streams the NDJSON body straight through. On an upstream error it
+emits a single `error` event rather than failing the request, so the client's
+stream parser always sees a well-formed line.

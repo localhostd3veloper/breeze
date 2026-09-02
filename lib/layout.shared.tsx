@@ -2,6 +2,8 @@ import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import Image from 'next/image';
 import { Fragment } from 'react';
 
+export const REPO_URL = 'https://github.com/localhostd3veloper/breeze';
+
 function Brand() {
   return (
     <Fragment>
@@ -19,6 +21,12 @@ export function baseOptions(): BaseLayoutProps {
       title: <Brand />,
       url: '/',
     },
-    githubUrl: 'https://github.com',
+    githubUrl: REPO_URL,
+    links: [
+      {
+        text: 'Open Breeze',
+        url: '/chat',
+      },
+    ],
   };
 }

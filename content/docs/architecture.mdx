@@ -4,95 +4,194 @@ description: How the frontend, backend and local model fit together.
 icon: lucide:server
 ---
 
-# Architecture
-
-Breeze is a full-stack AI chat app with three layers: a Next.js frontend, a
-FastAPI backend, and a local model served by Ollama. Data flows one way:
+Breeze has three layers: a Next.js frontend, a FastAPI backend, and a local
+model served by Ollama. Data flows one way.
 
 ```bash
-Browser → Next.js API routes → FastAPI backend → Ollama (+ optional hosted UI model)
-                ↓
+Browser -> Next.js API routes -> FastAPI backend -> Ollama
+                |
+                v
            MongoDB (Mongoose)
 ```
 
-## High-level split
+<Callout title="Next.js never talks to Ollama">
+  Every LLM call is owned by FastAPI. The Next.js routes are an authenticated
+  passthrough -- they add `X-API-Key` and forward the tracing headers, nothing more.
+</Callout>
 
-| Layer      | Role                                                               |
-| ---------- | ------------------------------------------------------------------ |
-| Next.js    | Auth, chat UI, CRUD for conversations and messages, passthrough proxy. |
-| FastAPI    | Owns all LLM calls: chat streaming, summarisation, generative UI routing, web search. |
-| Ollama     | Runs the local models.                                              |
-| MongoDB    | Persists users, conversations, and messages (via Mongoose).         |
+## The split
+
+| Layer       | Owns                                                                      |
+| ----------- | ------------------------------------------------------------------------- |
+| **Next.js** | Auth, chat UI, CRUD for conversations and messages, passthrough proxy.    |
+| **FastAPI** | All LLM calls: streaming, summarisation, generative UI routing, web search. |
+| **Ollama**  | Running the models.                                                       |
+| **MongoDB** | Users, conversations and messages, via Mongoose.                          |
+
+## Where the code lives
+
+<Files>
+  <Folder name="app" defaultOpen>
+    <Folder name="api">
+      <File name="chat/route.ts" />
+      <File name="conversations/route.ts" />
+      <File name="search/route.ts" />
+    </Folder>
+    <Folder name="chat">
+      <File name="hooks/useChatStream.ts" />
+    </Folder>
+  </Folder>
+  <Folder name="lib">
+    <File name="auth.ts" />
+    <File name="db/mongodb.ts" />
+    <File name="types/stream.ts" />
+    <Folder name="genui">
+      <File name="schema.ts" />
+    </Folder>
+  </Folder>
+  <Folder name="backend">
+    <File name="app.py" />
+    <File name="chat.py" />
+    <File name="genui_prompt.py" />
+    <File name="genui_router.py" />
+    <File name="tools.py" />
+  </Folder>
+</Files>
 
 ## Frontend
 
-The Next.js app handles authentication (NextAuth with Credentials + JWT) and
-the chat UI. API routes act as an authenticated passthrough to FastAPI: they
-add the `X-API-Key` header and forward the Langfuse tracing params
-(`X-User-Id`, `X-Session-Id`). CRUD for conversations and messages runs
-directly against MongoDB on the Next.js side.
+Authentication is NextAuth with Credentials and JWT sessions. API routes add
+the `X-API-Key` header and forward the Langfuse tracing params (`X-User-Id`,
+`X-Session-Id`). CRUD for conversations and messages runs directly against
+MongoDB on the Next.js side.
 
-### Message state architecture
+### Message state
 
-Messages live **exclusively** in the TanStack Query cache under the key
+Messages live **exclusively** in the TanStack Query cache, under the key
 `['conversations', id, 'messages']`. Zustand holds only `isAuthenticated`.
 
-- `staleTime: Infinity` keeps the cache stable during active streams.
-- `isStreaming: true` on a message is a client-only in-flight marker, never
-  read from the database.
-- `useChatStream` orchestrates the whole flow: create conversation, optimistic
-  cache update, stream, then persist to the database.
+<Callout type="warn" title="Do not move messages into Zustand">
+  Two stores for one list means two sources of truth during a stream. The cache
+  is already the transport: `useChatStream` writes chunks into it with
+  `setQueryData` as they arrive.
+</Callout>
+
+<TypeTable
+  type={{
+    staleTime: {
+      description:
+        'Set to Infinity so a background refetch cannot clobber an in-flight stream.',
+      type: 'Infinity',
+      required: true,
+    },
+    isStreaming: {
+      description:
+        'Client-only in-flight marker on a message. Never read from the database.',
+      type: 'boolean',
+      default: 'undefined',
+    },
+    useChatStream: {
+      description:
+        'Orchestrates the turn: create conversation, optimistic cache write, stream, persist.',
+      type: '(conversationId?: string) => ...',
+      required: true,
+    },
+  }}
+/>
+
+### The order of a turn
+
+<Steps>
+
+<Step>
+
+#### Create the conversation
+
+Only on a first message. `POST /api/conversations` returns an id, the cache is
+pre-populated, and the router navigates to `/chat/[id]`.
+
+</Step>
+
+<Step>
+
+#### Write optimistically, save the user message
+
+The user message goes into the cache immediately, and to the database as a
+fire-and-forget `POST /api/conversations/:id/messages`.
+
+</Step>
+
+<Step>
+
+#### Stream the reply
+
+`/api/chat` proxies FastAPI `/completion`. Each NDJSON line is appended into the
+cached assistant message, which carries `isStreaming: true`.
+
+</Step>
+
+<Step>
+
+#### Persist and refresh
+
+After the `done` event the finished assistant message is saved, and
+`['conversations']` is invalidated so the sidebar picks up the new title.
+
+</Step>
+
+</Steps>
 
 ## Backend
 
-FastAPI is a separate service that owns the LLM calls to Ollama. It exposes the
-`/completion`, `/summarize`, `/health`, and `/` endpoints. Next.js never talks
-to Ollama directly.
-
-The OpenAI SDK is pointed at Ollama's OpenAI-compatible endpoint
-(`OLLAMA_BASE_URL`, default `http://localhost:11434/v1`). The model is selected
-per request based on what the turn needs.
+FastAPI is a separate service exposing `/completion`, `/summarize`, `/health`
+and `/`. The OpenAI SDK is pointed at Ollama's OpenAI-compatible endpoint
+(`OLLAMA_BASE_URL`, default `http://localhost:11434/v1`) -- the SDK is OpenAI's,
+the endpoint is not.
 
 ### Model selection
 
-Priority is **images > thinking > web search > default**:
+Priority is **images > thinking > web search > default**.
 
-| Condition      | Model         |
-| -------------- | ------------- |
+| Condition      | Model            |
+| -------------- | ---------------- |
 | Default        | `phi4-mini:3.8b` |
-| Images present | `gemma3:12b`  |
-| Thinking mode  | `qwen3:8b`    |
-| Web search     | `qwen2.5:7b`  |
+| Images present | `gemma3:12b`     |
+| Thinking mode  | `qwen3:8b`       |
+| Web search     | `qwen2.5:7b`     |
 | Summarisation  | `phi4-mini:3.8b` |
-| Generative UI  | `gemma3:12b`  |
+| Generative UI  | `gemma3:12b`     |
+
+<Callout title="Priority, not union">
+  Attaching an image while thinking is on gets you the vision model, not both.
+  This is why the [web search guide](/docs/web-search#triggering-it) warns that
+  an image attachment overrides the search-tuned model.
+</Callout>
 
 ## Streaming
 
-The backend emits **NDJSON**. Each line is a `StreamEvent`:
+The backend emits **NDJSON** -- one `StreamEvent` per line.
 
-```ts
+```ts title="lib/types/stream.ts"
 { type: 'text' | 'reasoning' | 'done' | 'error', content: string }
 ```
 
-`/api/chat` (Next.js) is a pure proxy to FastAPI `/completion`. The client
-parses the NDJSON stream with an `AsyncGenerator`, appending text and reasoning
-as they arrive, then persists the finished assistant message after the `done`
-event.
+The client parses the stream with an `AsyncGenerator`, appending `text` and
+`reasoning` as they arrive. Full event semantics are in the
+[API reference](/docs/api#stream-events).
 
 ## Generative UI
 
-An assistant reply can embed widgets by emitting a fenced ` ```breeze-ui `
-block whose body is a single JSON object. `lib/genui/schema.ts` is the
-authoritative, compile-time grammar. The fence rides inside the normal text
-content, so it needs no new StreamEvent, no API change, and no database field:
-it persists and re-renders on reload for free.
+An assistant reply can embed a widget by emitting a fenced ` ```breeze-ui `
+block whose body is a single JSON object. The fence rides inside the normal
+text content, so it needs **no new StreamEvent, no API change and no database
+field** -- it persists and re-renders on reload for free.
 
-The model emits data, never JSX. Specs are validated with zod against a closed
-whitelist. See the [Generative UI](/docs/generative-ui) guide.
+The model emits data, never JSX. See the
+[Generative UI guide](/docs/generative-ui).
 
 ## Observability
 
 Every LLM call can be traced with Langfuse. The OpenAI client is wrapped by
-Langfuse's auto-instrumentation, and `X-User-Id` / `X-Session-Id` headers
-attribute each trace to a user and session. See the
-[Langfuse](/docs/langfuse) guide.
+Langfuse's auto-instrumentation, and the `X-User-Id` / `X-Session-Id` headers
+attribute each trace to a user and a session. See the
+[Langfuse guide](/docs/langfuse).

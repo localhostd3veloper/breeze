@@ -4,52 +4,108 @@ description: How live web search works and when Breeze uses it.
 icon: lucide:search
 ---
 
-# Web Search
+Breeze can search the live web with **Tavily**, and the sources come back cited.
 
-Breeze can search the live web with **Tavily** and its sources come back
-cited. This is the one feature that reaches the internet, and it stays off
-until you switch it on.
+<Callout type="warn" title="This is the only feature that leaves your machine">
+  Everything else in Breeze talks to `localhost`. Web search is off until you
+  switch it on, and only the search query and its results ever cross the
+  boundary -- not your transcript.
+</Callout>
 
 ## Triggering it
 
 Turn on the **Web search** toggle in the chat settings popover. The composer
-sends the `web_search: true` flag with your message.
+sends `web_search: true` with your message.
 
-When it is active, Breeze uses a web-search model (`qwen2.5:7b`) so the search
-context fits the model's strengths. Note that priority is **images >
-thinking > web search > default**: if you also enable thinking or attach an
-image, those take precedence over the web-search model.
+Breeze then uses a search-tuned model (`qwen2.5:7b`), because the search context
+suits that model's strengths.
+
+<Callout title="Another mode can outrank it">
+  Model selection is a priority order -- **images > thinking > web search >
+  default**. Attach an image or turn on thinking and *that* model runs the search
+  turn instead. See [model selection](/docs/architecture#model-selection).
+</Callout>
 
 ## How a search turn works
 
-A web-search turn runs as a **two-pass** flow:
+It is a **two-pass** flow, because the model has to see the results before it can
+write the answer.
 
-1. **First pass.** Breeze streams the model's reply to you while it collects
-   any tool calls. A single tool, `web_search`, asks the model to produce a
-   query.
+<Steps>
 
-2. **Tool execution.** Tool calls run **in parallel**, each hitting Tavily via
-   `TavilyClient.search()`. Results are returned as `tool` role messages.
+<Step>
 
-3. **Second pass.** The model gets the search results and streams a final
-   answer, plus a `done` event. The tool results already in the trace let it
-   cite source URLs inline.
+### First pass
+
+Breeze streams the model's reply to you while collecting any tool calls. One
+tool is exposed, `web_search`, and calling it is how the model produces a query.
+
+</Step>
+
+<Step>
+
+### Tool execution
+
+Tool calls run **in parallel**, each hitting Tavily through
+`TavilyClient.search()`. Results come back as `tool`-role messages appended to
+the conversation.
+
+</Step>
+
+<Step>
+
+### Second pass
+
+The model receives the search results and streams the final answer, then a
+`done` event. Because the tool results are already in the trace, it can cite
+source URLs inline.
+
+</Step>
+
+</Steps>
 
 ## Configuration
 
-Web search needs the `TAVILY_API_KEY` in `backend/.env`. Without it, the
-`web_search` flag has no effect.
+Web search needs a Tavily key in the backend env. Without it the `web_search`
+flag is accepted and does nothing.
 
-```bash
-# backend/.env
+```bash title="backend/.env"
 TAVILY_API_KEY=your-tavily-key
 ```
 
 ## What you should know
 
-- Only the search query and results leave your machine, and only when the
-  toggle is on.
-- The tool is defined in OpenAI function-calling format in `backend/tools.py`.
-  The model is told to cite URLs.
-- Generative UI is skipped on web-search turns: the two-pass tool flow and the
-  widget grammar do not compose.
+<Accordions type="single">
+
+<Accordion title="What actually leaves the machine">
+
+The search query the model wrote, and nothing else. Your prompt, your history
+and your transcript stay local. Tavily returns results; the answer is still
+written by your own model.
+
+</Accordion>
+
+<Accordion title="Generative UI is skipped on search turns">
+
+The two-pass tool flow and the widget grammar do not compose, so a web-search
+turn never emits a `breeze-ui` fence -- even with **Always visualize** on. See
+[Generative UI](/docs/generative-ui#when-a-widget-appears).
+
+</Accordion>
+
+<Accordion title="Where the tool is defined">
+
+`backend/tools.py`, in OpenAI function-calling format. The system prompt
+instructs the model to cite URLs.
+
+</Accordion>
+
+<Accordion title="Tracing a search turn">
+
+With Langfuse on, the second pass runs under `tools.stream_responses`, so the
+search round trip and the final answer show up as one flow. See
+[Langfuse](/docs/langfuse#what-is-traced).
+
+</Accordion>
+
+</Accordions>

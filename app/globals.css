@@ -1,6 +1,11 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
+/* `preset.css` ships docs/home/notebook/flux but not glass, so glass's
+   `@source inline(...)` set has to be pulled in by hand -- and *before*
+   preset.css, or Tailwind never emits the arbitrary utilities the layout
+   needs (its radial mask renders as a visible white ellipse without them). */
+@import 'fumadocs-ui/css/generated/glass.css';
 @import 'fumadocs-ui/css/shadcn.css';
 @import 'fumadocs-ui/css/preset.css';
 

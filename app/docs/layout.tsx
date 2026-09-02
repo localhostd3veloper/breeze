@@ -1,4 +1,4 @@
-import { DocsLayout } from 'fumadocs-ui/layouts/docs';
+import { GlassLayout } from 'fumadocs-ui/layouts/glass';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import type { ReactNode } from 'react';
 
@@ -7,10 +7,12 @@ import { source } from '@/lib/source';
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <RootProvider search={{ enabled: false }} theme={{ enabled: false }}>
-      <DocsLayout {...baseOptions()} tree={source.getPageTree()} sidebar={{ defaultOpenLevel: 1 }}>
+    // `theme` stays disabled: the root layout already mounts next-themes, and a
+    // second provider would fight it over the `class` attribute.
+    <RootProvider theme={{ enabled: false }}>
+      <GlassLayout {...baseOptions()} tree={source.getPageTree()} sidebar={{ defaultOpenLevel: 1 }}>
         {children}
-      </DocsLayout>
+      </GlassLayout>
     </RootProvider>
   );
 }

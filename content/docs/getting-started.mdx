@@ -4,84 +4,196 @@ description: Install and run Breeze on your own hardware.
 icon: lucide:rocket
 ---
 
-# Getting Started
-
-Breeze runs entirely on your own hardware. This guide walks through the
-frontend, the backend, and the local model.
+Breeze runs entirely on your own hardware. This guide walks through the three
+processes you need up: the Next.js frontend, the FastAPI backend, and Ollama.
 
 ## Prerequisites
 
-- **Bun** for the frontend
-- **Python 3.10+** for the backend
-- **MongoDB** (local or Atlas)
-- **Ollama** running locally with chat and vision models pulled
+| You need    | Version        | For                                              |
+| ----------- | -------------- | ------------------------------------------------ |
+| **Bun**     | latest         | Package manager and runtime for the frontend.    |
+| **Python**  | 3.10+          | Runs the FastAPI backend.                        |
+| **MongoDB** | local or Atlas | Users, conversations and messages.               |
+| **Ollama**  | running        | Serves the models. Must be reachable by the backend. |
 
-## 1. Frontend
+<Steps>
+
+<Step>
+
+### Install the frontend
 
 ```bash
 bun install
 bun run dev
 ```
 
-Copy `.env.example` to `.env.local` and fill in your values:
+The dev server comes up on [`localhost:3000`](http://localhost:3000).
 
-```bash
+Copy `.env.example` to `.env.local` and fill it in:
+
+```bash title=".env.local"
 OLLAMA_API_URL=      # FastAPI backend URL, e.g. http://localhost:8000
-OLLAMA_API_KEY=      # Shared secret for backend X-API-Key
+OLLAMA_API_KEY=      # Shared secret for the backend's X-API-Key
 MONGO_URI=           # MongoDB connection string
-NEXTAUTH_SECRET=     # JWT secret
-NEXTAUTH_URL=        # App URL
+NEXTAUTH_SECRET=     # JWT signing secret
+NEXTAUTH_URL=        # App URL, e.g. http://localhost:3000
 PLATFORM_PASSWORD=   # Demo account password
 ```
 
-- `OLLAMA_API_URL` points at the FastAPI backend, not at Ollama directly.
-- `OLLAMA_API_KEY` must match `API_KEY` in the backend's `.env`.
+<Callout type="warn" title="Two names, one secret">
+  `OLLAMA_API_URL` points at the **FastAPI backend**, not at Ollama directly --
+  the frontend never talks to Ollama. And `OLLAMA_API_KEY` here must be byte-for-byte
+  the same value as `API_KEY` in `backend/.env`, or every request comes back `401`.
+</Callout>
 
-## 2. Backend
+</Step>
+
+<Step>
+
+### Bring up the backend
+
+<Tabs items={['python', 'uvicorn']}>
+
+<Tab value="python">
 
 ```bash
 cd backend
-python main.py       # FastAPI server on port 8000
+python main.py
 ```
 
-Create `backend/.env`:
+</Tab>
+
+<Tab value="uvicorn">
 
 ```bash
-API_KEY=             # Shared secret, must match frontend OLLAMA_API_KEY
+cd backend
+uvicorn app:app --reload
+```
+
+</Tab>
+
+</Tabs>
+
+Either way FastAPI listens on port `8000`. Create its env file:
+
+```bash title="backend/.env"
+API_KEY=             # Shared secret; must match the frontend's OLLAMA_API_KEY
 TAVILY_API_KEY=      # Optional: only needed for web search
 ```
 
-The backend authenticates requests with the `X-API-Key` header. Rate limits
-are applied per endpoint and per client IP: 10/minute on completion and
-20/minute on summarize.
+Requests are authenticated with the `X-API-Key` header and rate-limited per
+client IP: 10/minute on `/completion`, 20/minute on `/summarize`.
 
-## 3. Model
+</Step>
 
-Breeze talks to Ollama's OpenAI-compatible endpoint. By default that is
-`http://localhost:11434/v1`. Pull the models you plan to use:
+<Step>
+
+### Pull the models
+
+Breeze talks to Ollama's OpenAI-compatible endpoint, `http://localhost:11434/v1`
+by default. Pull the models for the modes you plan to use:
 
 ```bash
-ollama pull phi4-mini       # default chat
-ollama pull gemma3           # vision + generative UI
-ollama pull qwen3            # reasoning
-ollama pull qwen2.5          # web search
+ollama pull phi4-mini    # default chat and summarisation
+ollama pull gemma3       # vision and generative UI
+ollama pull qwen3        # reasoning / thinking mode
+ollama pull qwen2.5      # web search
 ```
 
-You can override the base URL with `OLLAMA_BASE_URL` in `backend/.env`.
+Only `phi4-mini` is required to send a first message. The others are pulled on
+demand by the mode that needs them -- see
+[model selection](/docs/architecture#model-selection).
 
-## 4. Verify
+Override the endpoint with `OLLAMA_BASE_URL` in `backend/.env` if Ollama runs
+on another machine.
 
-Open `http://localhost:3000/chat` in your browser and send a message. The reply
-streams in from your local model.
+</Step>
 
-Check the backend is healthy with:
+<Step>
+
+### Verify
+
+Check the backend answers:
 
 ```bash
 curl http://localhost:8000/health
+# {"status":"ok"}
 ```
+
+Then open [`localhost:3000/chat`](http://localhost:3000/chat), sign up, and send
+a message. The reply streams in from your local model.
+
+<Callout type="success" title="That is the whole install">
+  Nothing so far has contacted a vendor. If you never turn on web search or set
+  Langfuse keys, nothing ever will.
+</Callout>
+
+</Step>
+
+</Steps>
+
+## Troubleshooting
+
+<Accordions type="single">
+
+<Accordion title="Every request returns 401">
+
+`OLLAMA_API_KEY` in `.env.local` does not match `API_KEY` in `backend/.env`. The
+backend compares them with a constant-time check and rejects on any difference,
+including trailing whitespace.
+
+</Accordion>
+
+<Accordion title="The reply starts, then stops">
+
+Usually Ollama evicting the system prompt. Its default context window is 4096
+tokens and it truncates from the front when a prompt overflows. See
+[the context-window trap](/docs/generative-ui#the-context-window-trap).
+
+</Accordion>
+
+<Accordion title="The model says it cannot display charts">
+
+Same cause as above, on a generative UI turn. The widget grammar was pushed out
+of the window. Raise `OLLAMA_CONTEXT_LENGTH` on the Ollama server, or leave
+"Always visualize" off so the router only routes turns that need it.
+
+</Accordion>
+
+<Accordion title="The web search toggle does nothing">
+
+`TAVILY_API_KEY` is unset in `backend/.env`. Without it the `web_search` flag is
+accepted and ignored. See the [Web search guide](/docs/web-search#configuration).
+
+</Accordion>
+
+</Accordions>
 
 ## What's next
 
-- Browse the [Feature Guide](/docs/features).
-- Read the [Architecture](/docs/architecture) to understand the data flow.
-- [Turn on Langfuse](/docs/langfuse) for LLM observability.
+<Cards>
+  <Card
+    icon={<Sparkles />}
+    title="Features"
+    description="The modes, the transcript actions and conversation management."
+    href="/docs/features"
+  />
+  <Card
+    icon={<Server />}
+    title="Architecture"
+    description="Where state lives and how a turn actually flows."
+    href="/docs/architecture"
+  />
+  <Card
+    icon={<Activity />}
+    title="Langfuse"
+    description="Turn on tracing to see latency and tokens per reply."
+    href="/docs/langfuse"
+  />
+  <Card
+    icon={<Shield />}
+    title="Security"
+    description="What to harden before this faces anything but localhost."
+    href="/docs/security"
+  />
+</Cards>

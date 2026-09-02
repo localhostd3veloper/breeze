@@ -4,71 +4,133 @@ description: The chat modes and conversation tools in Breeze.
 icon: lucide:sparkles
 ---
 
-# Features
-
-Everything here is exposed through the chat composer's settings popover or the
-conversation actions in the transcript.
+Everything here is reachable from the chat composer's settings popover or the
+conversation actions in the transcript. Nothing needs configuration beyond what
+[Getting Started](/docs/getting-started) already set up.
 
 ## Modes
 
-Each mode is toggled from the "Chat settings" popover next to the input. You
-can stack several at once, and each mode paints the composer border with its
-own accent.
+Modes are toggled from the **Chat settings** popover next to the input. You can
+stack several at once, and each paints the composer border with its own accent.
+
+<Callout title="Stacking is allowed; the model is still one model">
+  Turning on two modes does not run two models. Selection is a priority order --
+  **images > thinking > web search > default** -- so the highest-priority active
+  mode picks the model. See [model selection](/docs/architecture#model-selection).
+</Callout>
+
+<Tabs items={['Thinking', 'Web search', 'Always visualize', 'Images']}>
+
+<Tab value="Thinking">
 
 ### Thinking
 
-Turns on deliberate reasoning before the reply. The model switches to a
-reasoning model (`qwen3:8b`) and emits a streamed `reasoning` block that is
-collapsed inside the message until you open it.
+Deliberate reasoning before the reply. Breeze switches to a reasoning model
+(`qwen3:8b`), which emits a streamed `reasoning` block alongside the answer.
+
+The reasoning arrives as its own [stream event type](/docs/api#stream-events),
+so the UI can render it in a panel that stays collapsed inside the message until
+you open it. It is stored with the message, so it is still there on reload.
+
+</Tab>
+
+<Tab value="Web search">
 
 ### Web search
 
-Lets the model search the live web and cite its sources. This is the **only**
-feature that leaves your machine. It is off until you switch it on. See the
-[Web search](/docs/web-search) guide.
+Lets the model search the live web and cite its sources.
+
+<Callout type="warn">
+  This is the **only** feature that leaves your machine, and it is off until you
+  switch it on. It also needs `TAVILY_API_KEY` set in `backend/.env` -- without
+  it the toggle is accepted and silently does nothing.
+</Callout>
+
+The full two-pass tool flow is in the [Web search guide](/docs/web-search).
+
+</Tab>
+
+<Tab value="Always visualize">
 
 ### Always visualize
 
-Forces the generative UI model. When it is off, the backend decides per turn
-whether the reply deserves a widget. See the [Generative UI](/docs/generative-ui)
-guide.
+Forces the generative UI model, so every reply is a candidate for a chart,
+table or metric card.
+
+Left off, the backend decides per turn whether the answer warrants a widget --
+which is usually what you want, since routing a prose question through the UI
+model costs context for no benefit. See
+[Generative UI](/docs/generative-ui#when-a-widget-appears).
+
+</Tab>
+
+<Tab value="Images">
 
 ### Images
 
-Attach an image and Breeze switches to a vision model (`gemma3:12b`). The
-image is sent to the local model as base64, never up to a cloud. You can attach
-several images to one turn.
+Attach an image and Breeze switches to a vision model (`gemma3:12b`). You can
+attach several to one turn.
+
+The image is sent to your local model as base64. It never goes to a cloud
+service, and like everything else in the transcript it is stored in your own
+MongoDB.
+
+</Tab>
+
+</Tabs>
 
 ## In the transcript
 
-### Edit a message
+<Cards>
+  <Card
+    title="Edit a message"
+    description="Point at any user message to edit it. Editing truncates the conversation at that point and streams a fresh reply."
+  />
+  <Card
+    title="Regenerate"
+    description="Point at any assistant message to ask for a new reply. That message and everything after it are replaced."
+  />
+  <Card
+    title="Copy"
+    description="Copy the full text of any message to your clipboard."
+  />
+  <Card
+    title="Download"
+    description="Take the transcript out of the chat header as a plain JSON list of turns."
+  />
+</Cards>
 
-Point at any user message to edit it. Editing truncates the conversation at
-that point and streams a fresh reply.
-
-### Regenerate
-
-Point at any assistant message to ask for a new reply. The assistant message
-and everything after it are replaced.
-
-### Copy
-
-Copy the full text of any message to your clipboard.
+<Callout type="warn" title="Edit and regenerate are destructive">
+  Both truncate the conversation from that point. The messages after it are
+  removed, not branched -- if you want to keep the old reply, copy it first.
+</Callout>
 
 ## Conversation management
 
-From the sidebar you can:
+From the sidebar:
 
-- **Search** across your conversations and messages.
-- **Pin** a conversation to the top.
-- **Archive** a conversation.
-- **Delete** a conversation.
+| Action      | What it does                                                       |
+| ----------- | ------------------------------------------------------------------ |
+| **Search**  | Full-text across your conversations *and* the messages inside them. |
+| **Pin**     | Keeps a conversation at the top of the list.                       |
+| **Archive** | Hides it without deleting the transcript.                          |
+| **Delete**  | Removes the conversation and its messages.                         |
 
-From the chat header you can **download** the transcript as a plain JSON list
-of turns.
+Titles are written automatically from your first message by the same local
+model that writes the replies -- `POST /summarize`, rate-limited 20/minute. You
+can rename or regenerate a title from the sidebar.
+
+## Keyboard
+
+| Shortcut  | Action                |
+| --------- | --------------------- |
+| `⌘ K`     | Search conversations  |
+| `⌘ B`     | Toggle the sidebar    |
+| `⌘ ⇧ O`   | Start a new chat      |
 
 ## Privacy reminders
 
-- Prompts, replies, and images go to your local model.
+- Prompts, replies and images go to your local model.
 - Web search is opt-in and the only network egress.
-- The `/completion` and `/summarize` endpoints are rate-limited per IP.
+- `/completion` and `/summarize` are rate-limited per IP. See
+  [Security](/docs/security#rate-limiting).

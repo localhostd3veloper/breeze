@@ -565,3 +565,41 @@ block collapses `animation-duration`, and the keyframe's end state is the sharp 
 **Left alone.** Reasoning panels still render unanimated (secondary, usually
 collapsed), and the three pre-existing lint errors in `app/chat/page.client.tsx`
 and `app/chat/[id]/page.client.tsx` are untouched files.
+
+---
+
+## Fumadocs rebuild: components, search, plain-text routes (2026-09-02)
+
+The docs shipped by the previous pass rendered, but every page carried a duplicate
+heading, none of the Fumadocs component set was reachable from MDX, search was
+switched off, and `/docs/<page>.mdx` 404'd. Landing-page links into the docs were
+two generic `/docs` hrefs.
+
+### Root causes (each confirmed in the tree, not guessed)
+
+| Symptom                        | Cause                                                                                                                                                                            |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repeated heading on every page | Frontmatter `title` renders through `<DocsTitle>`, and each `.mdx` body _also_ opened with an `# H1`.                                                                            |
+| MDX components unused          | `getMDXComponents()` spread only `defaultMdxComponents` (Card/Cards/Callout/pre). Tabs, Steps, Accordions, TypeTable and Files are opt-in in Fumadocs and were never registered. |
+| Search missing                 | `app/docs/layout.tsx` passed `search={{ enabled: false }}` to `RootProvider`, and no `/api/search` route existed.                                                                |
+| `/docs/features.mdx` 404       | `next.config.ts` rewrote only `/docs/:path*.md`. The `.mdx` suffix fell through to `[[...slug]]`, where `source.getPage(['features.mdx'])` misses.                               |
+| content-collections warning    | Implicit `content` on the schema is deprecated, and `getLLMText` depends on that field.                                                                                          |
+
+### Tasks
+
+- [ ] `content-collections.ts` -- declare `content` explicitly on the docs schema.
+- [ ] `app/api/search/route.ts` -- `createFromSource(source)` over the generated `structuredData`.
+- [ ] `app/docs/layout.tsx` -- drop `search={{ enabled: false }}`; keep `theme` disabled (root layout owns next-themes).
+- [ ] `next.config.ts` -- rewrite `.mdx` as well as `.md` to `/llms.mdx/docs/*`.
+- [ ] `components/mdx.tsx` -- register Accordion(s), Banner, Callout, File(s)/Folder, Step(s), Tab(s), TypeTable.
+- [ ] Strip the body `# H1` from all 10 pages; keep frontmatter as the single title source.
+- [ ] Rewrite each page to actually use the component set (Steps for setup, Tabs for
+      per-surface config, TypeTable for request/response shapes, Callouts for the traps,
+      Files for the tree, Accordions for the reference tail).
+- [ ] Landing page: deep-link each section into the doc page that explains it.
+- [ ] Verify: `tsc --noEmit`, `eslint`, then a real request against every route.
+
+### Constraint
+
+No dev server was running (`ss -ltnp` clean), so `bun run build` is safe here -- but
+verification still goes through `tsc --noEmit` + `eslint` first, per the lesson above.

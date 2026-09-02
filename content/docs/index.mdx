@@ -4,65 +4,100 @@ description: An AI chat app you host yourself. Prompts and replies go to a model
 icon: lucide:sparkles
 ---
 
-# Welcome to Breeze
-
 Breeze is an AI chat application you host yourself. Prompts and replies go to a
 model running on your **own hardware**, not to a vendor's cloud. Exactly one
 feature reaches the internet, and only when you switch it on.
 
-This documentation covers installation, architecture, the feature set, security
-posture, observability, and the API reference for building on top of Breeze.
+<Callout title="Privacy by default">
+  The default model endpoint is `localhost:11434`. Transcripts land in your own
+  MongoDB. Web search is the only feature that leaves your network, and it stays
+  off until you ask for it.
+</Callout>
 
-## Stack
-
-- **Frontend:** Next.js 16 (App Router) with shadcn/ui + Tailwind CSS 4
-- **Backend:** FastAPI
-- **Model:** Ollama (local LLM)
-- **Database:** MongoDB (Mongoose)
-- **Observability:** Langfuse (LLM tracing)
-- **Web search:** Tavily (optional, opt-in)
-
-## What you get
-
-- Streaming replies with a reasoning toggle.
-- Image understanding through a vision model.
-- Opt-in web search with cited sources.
-- Generative UI: the model can answer with charts, tables, and metric cards.
-- Conversation management: edit, regenerate, pin, archive, delete, export.
-- Full-text search across your conversations.
-
-## Privacy by default
-
-Your prompts and replies stay on your machine. The default model endpoint is
-`localhost`. Web search is the only feature that leaves your network, and it is
-turned off until you ask for it.
-
-## Quick Links
+## Start here
 
 <Cards>
   <Card
+    icon={<Rocket />}
     title="Getting Started"
-    description="Install and run Breeze locally."
+    description="Install the frontend, the backend and a local model."
     href="/docs/getting-started"
   />
   <Card
-    title="Features"
-    description="Reasoning, images, web search, and generative UI."
-    href="/docs/features"
-  />
-  <Card
+    icon={<Server />}
     title="Architecture"
-    description="How the frontend, backend and model fit together."
+    description="How the three layers fit together, and where state lives."
     href="/docs/architecture"
   />
   <Card
-    title="Security"
-    description="Auth, API keys, rate limits, and safe generative UI."
-    href="/docs/security"
+    icon={<Sparkles />}
+    title="Features"
+    description="Reasoning, images, web search and generative UI."
+    href="/docs/features"
   />
   <Card
+    icon={<Terminal />}
     title="API Reference"
-    description="The FastAPI endpoints Breeze exposes."
+    description="The FastAPI endpoints and the streaming protocol."
     href="/docs/api"
   />
 </Cards>
+
+## The stack
+
+| Layer             | Choice                                          |
+| ----------------- | ----------------------------------------------- |
+| **Frontend**      | Next.js 16 (App Router), shadcn/ui, Tailwind 4  |
+| **Backend**       | FastAPI                                         |
+| **Model**         | Ollama, local                                   |
+| **Database**      | MongoDB via Mongoose                            |
+| **Observability** | [Langfuse](/docs/langfuse), optional            |
+| **Web search**    | [Tavily](/docs/web-search), optional and opt-in |
+
+## What you get
+
+<Cards>
+  <Card
+    icon={<Brain />}
+    title="Thinking, shown"
+    description="Reasoning streams as its own block and collapses once you have read it."
+    href="/docs/features#thinking"
+  />
+  <Card
+    icon={<Globe />}
+    title="Web search"
+    description="Tavily, with cited sources. Off until you switch it on."
+    href="/docs/web-search"
+  />
+  <Card
+    icon={<ImageIcon />}
+    title="Images"
+    description="Drop an image in and a vision model reads it alongside your text."
+    href="/docs/features#images"
+  />
+  <Card
+    icon={<LineChart />}
+    title="Generative UI"
+    description="Replies can carry charts, tables and metric cards, not just prose."
+    href="/docs/generative-ui"
+  />
+  <Card
+    icon={<Search />}
+    title="Search everything"
+    description="Find any past chat by title or by something said inside it."
+    href="/docs/features#conversation-management"
+  />
+  <Card
+    icon={<Shield />}
+    title="Locked down by default"
+    description="Session auth, a shared service key and per-IP rate limits."
+    href="/docs/security"
+  />
+</Cards>
+
+## Reading this documentation
+
+Every page is available as plain Markdown for feeding to a model: append
+`.mdx` to any docs URL, or use the **Copy Markdown** button at the top of the
+page. The whole site is also at [`/llms.txt`](/llms.txt) and
+[`/llms-full.txt`](/llms-full.txt).

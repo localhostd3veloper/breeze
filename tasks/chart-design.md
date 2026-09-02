@@ -121,6 +121,35 @@ prefer it whenever the data's job is "one headline figure".
 - **Legend always present for ≥ 2 series** (one series needs none -- the title names it);
   at ≤ 4 series also direct-label, so identity is never colour-alone.
 
+**Fills are gradients, always vertical, always top-weighted.** Every filled mark in the
+app -- bar, area, and the `line` variant, which draws as an area -- fades from dense at the
+value to thin at the baseline. This is what stops the widgets reading as a default Recharts
+demo, and it only works as a system: one direction, one shape, everywhere. Opacities are
+set by how much overlap the form has, not by taste:
+
+| Form                 | Top  | Base |
+| -------------------- | ---- | ---- |
+| Bar (any)            | 1.0  | 0.72 |
+| Area/line, 1 series  | 0.30 | 0.02 |
+| Area/line, 2 series  | 0.18 | 0.01 |
+| Area/line, 3+ series | 0.09 | 0.01 |
+| Area, stacked        | 0.85 | 0.55 |
+
+Unstacked fills overlap and the overlaps compound -- six fills at the one-series opacity
+turn the lower half of the plot to mud. A stack does not overlap, so its bands go
+near-solid; anything fainter and the middle of the stack stops being legible.
+
+Gradient stops carry `--series-N`, never a hex, so fills follow the theme toggle. Ids are
+per-instance (`useId`) or the last `<defs>` on a page wins for every chart on it.
+
+**A single-series bar chart gets a gauge track, not grid lines.** Each column is drawn to
+full plot height in `--muted` at 0.5, and the bar fills it, so the proportion is readable
+at the mark instead of by tracing back to the axis. Grid rules would then be a second,
+competing reference, so they are dropped -- the axis still carries the numbers. Multiple
+series cannot share a track (whose column would it be?) and keep the conventional grid.
+Bars are capped at `maxBarSize` 56: three uncapped categories become three slabs the width
+of a paragraph, which is the clearest tell of a default chart.
+
 **Marks and chrome:**
 
 - Thin marks; 2px lines; markers ≥ 8px
