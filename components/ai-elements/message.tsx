@@ -8,11 +8,14 @@ import type { UIMessage } from 'ai';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import type { ComponentProps, HTMLAttributes, ReactElement } from 'react';
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import type { CustomRendererProps } from 'streamdown';
 import { Streamdown } from 'streamdown';
 
+import { GenUiBlock } from '@/components/genui/genui-block';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupText } from '@/components/ui/button-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { GENUI_LANGUAGE } from '@/lib/genui/schema';
 import { cn } from '@/lib/utils';
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
@@ -271,7 +274,26 @@ export const MessageBranchPage = ({ className, ...props }: MessageBranchPageProp
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
-const streamdownPlugins = { cjk, code, math, mermaid };
+/**
+ * Generative UI: a ```breeze-ui fence renders as a widget instead of as code.
+ *
+ * Registered through Streamdown's `renderers` plugin slot rather than by
+ * overriding the `code` component, so every other language keeps the shiki
+ * highlighting that `@streamdown/code` provides. `isIncomplete` is supplied by
+ * Streamdown while the fence is still open, which is what lets the widget
+ * settle out of a skeleton instead of flashing an error on every token.
+ */
+const GenUiRenderer = ({ code: raw, isIncomplete }: CustomRendererProps) => (
+  <GenUiBlock raw={raw} isIncomplete={isIncomplete} />
+);
+
+const streamdownPlugins = {
+  cjk,
+  code,
+  math,
+  mermaid,
+  renderers: [{ component: GenUiRenderer, language: GENUI_LANGUAGE }],
+};
 
 export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (

@@ -21,6 +21,13 @@ const eslintConfig = defineConfig([
     'build/**',
     'next-env.d.ts',
     'backend/',
+    // Local Vercel build output. Gitignored, but eslint-config-next does not
+    // ignore it, so a local `vercel build` otherwise fails every lint run on
+    // thousands of findings in minified vendor bundles.
+    '.vercel/**',
+    // Vendored verbatim from the dataviz skill. Kept byte-identical to upstream
+    // so it stays diffable; not ours to restyle.
+    'scripts/validate_palette.js',
   ]),
 ]);
 

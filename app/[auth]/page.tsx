@@ -38,7 +38,7 @@ export default async function AuthPage({ params }: { params: Promise<{ auth: str
       </div>
       {/* The same air, and the same boundary, as the landing page. */}
       <div className="bg-card/40 rule-l relative hidden overflow-hidden lg:block">
-        <WindField className="pointer-events-none absolute inset-0 h-full w-full [--wind-stroke:color-mix(in_oklab,var(--primary)_24%,transparent)]" />
+        <WindField className="pointer-events-none absolute inset-0 h-full w-full" />
         <div
           aria-hidden
           className="from-card/10 to-card pointer-events-none absolute inset-0 bg-gradient-to-b"

@@ -14,6 +14,7 @@ class ChatRequest(BaseModel):
     history: list[HistoryMessage] = []
     web_search: bool = False
     images: list[str] = []
+    genui: Literal["auto", "on", "off"] = "auto"
 
 
 class SummarizeRequest(BaseModel):

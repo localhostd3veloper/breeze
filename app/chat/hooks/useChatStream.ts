@@ -10,6 +10,13 @@ import type { StreamEvent } from '@/lib/types/stream';
 
 const MESSAGES_KEY = (id: string) => ['conversations', id, 'messages'];
 
+/**
+ * Generative UI routing. `auto` lets the backend router decide per turn whether
+ * the answer warrants a widget. There is no user-facing toggle yet — swapping
+ * this for state is the whole change if one is added.
+ */
+const GENUI_MODE: 'auto' | 'on' | 'off' = 'auto';
+
 function getMessages(qc: ReturnType<typeof useQueryClient>, convId: string): ChatMessageDTO[] {
   return qc.getQueryData<ChatMessageDTO[]>(MESSAGES_KEY(convId)) ?? [];
 }
@@ -104,6 +111,7 @@ export function useChatStream(conversationId?: string) {
           thinking,
           history,
           web_search: webSearch,
+          genui: GENUI_MODE,
           ...(images.length && {
             images: images.map((url) => (url.includes(',') ? url.split(',')[1] : url)),
           }),

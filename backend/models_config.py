@@ -4,13 +4,27 @@
 # Edit this file to swap models at any time.
 # All models below should be available via Ollama (https://ollama.com/library).
 
+from settings import settings
+
 MODELS: dict[str, str] = {
     "default": "phi4-mini:3.8b",
     "vision": "gemma3:12b",
     "thinking": "qwen3:8b",
     "web_search": "qwen2.5:7b",
     "summarize": "phi4-mini:3.8b",
+    # Generative UI needs the most capable model available: it has to hold a
+    # spec grammar in its head and emit strictly valid JSON.
+    "genui": "gemma3:12b",
 }
+
+
+def resolve_genui_model() -> str:
+    """The effective generative-UI model name.
+
+    A `UI_MODEL_NAME` override wins, so a remote endpoint can name a model that
+    does not exist in the local Ollama library. Otherwise `MODELS["genui"]`.
+    """
+    return settings.ui_model_name or MODELS["genui"]
 
 
 def select_model(thinking: bool, web_search: bool, has_images: bool) -> str:

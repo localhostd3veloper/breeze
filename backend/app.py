@@ -34,6 +34,18 @@ async def lifespan(app: FastAPI):
         base_url=settings.ollama_base_url,
         api_key="ollama",  # required by SDK but unused by Ollama
     )
+    # Generative-UI client. When the UI endpoint is the local one (the default),
+    # reuse the same client object so the pure-local setup is unchanged.
+    if settings.ui_model_base_url == settings.ollama_base_url:
+        app.state.ui_openai = app.state.openai
+        logger.info("Gen-UI client: reusing local Ollama client (%s)", settings.ollama_base_url)
+    else:
+        app.state.ui_openai = OpenAI(
+            base_url=settings.ui_model_base_url,
+            api_key=settings.ui_model_api_key,
+        )
+        logger.info("Gen-UI client: separate endpoint (%s)", settings.ui_model_base_url)
+
     app.state.tavily = TavilyClient(api_key=settings.tavily_api_key)
     logger.info("Clients initialised (ollama=%s)", settings.ollama_base_url)
     yield
@@ -86,6 +98,8 @@ async def completion(
                 thinking=body.thinking,
                 user_id=user_id,
                 session_id=session_id,
+                ui_client=request.app.state.ui_openai,
+                genui=body.genui,
             ):
                 if await request.is_disconnected():
                     break

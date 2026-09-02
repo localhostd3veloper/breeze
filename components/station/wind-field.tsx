@@ -34,7 +34,7 @@ export function WindField({ className }: { className?: string }) {
      * once a pixel decays to 1/255, `1 * 0.965` rounds back to 1 — so faint
      * streaks survive forever and silt up the background over a long session.
      */
-    const TAIL = 16;
+    const TAIL = 52;
     type Particle = { x: number; y: number; life: number; pts: number[] };
     let particles: Particle[] = [];
 
@@ -44,7 +44,7 @@ export function WindField({ className }: { className?: string }) {
     const spawn = (w: number, h: number, seeded: boolean): Particle => ({
       x: seeded ? Math.random() * w : Math.random() * w * 0.4 - 20,
       y: Math.random() * h,
-      life: seeded ? Math.random() * 220 : 160 + Math.random() * 200,
+      life: seeded ? Math.random() * 320 : 220 + Math.random() * 260,
       pts: [],
     });
 
@@ -96,10 +96,11 @@ export function WindField({ className }: { className?: string }) {
       }
     };
 
-    // Trails are stroked in a few batched bands rather than per particle, so a
-    // frame costs a handful of paths no matter how many particles are alive.
-    const BANDS = 4;
-    const bandAlpha = [0.18, 0.42, 0.7, 1];
+    // Trails are stroked in batched bands rather than per particle, so a frame
+    // costs a fixed handful of paths no matter how many particles are alive.
+    // Six bands over a long tail keeps the fade smooth instead of stepped.
+    const BANDS = 6;
+    const bandAlpha = [0.06, 0.16, 0.32, 0.52, 0.76, 1];
 
     const paint = () => {
       ctx.clearRect(0, 0, width, height);

@@ -79,7 +79,7 @@ export default async function Page() {
       {/* ---------------- Hero ---------------- */}
       <section className="relative overflow-hidden pt-14">
         {/* The air the boundary will cut through. */}
-        <WindField className="pointer-events-none absolute inset-0 h-full w-full [--wind-stroke:color-mix(in_oklab,var(--primary)_45%,transparent)] dark:[--wind-stroke:color-mix(in_oklab,var(--primary)_38%,transparent)]" />
+        <WindField className="pointer-events-none absolute inset-0 h-full w-full" />
         <div
           aria-hidden
           className="from-background/70 via-background/30 to-background pointer-events-none absolute inset-0 bg-gradient-to-b"

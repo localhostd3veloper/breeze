@@ -7,8 +7,10 @@ from langfuse import propagate_attributes
 from langfuse.openai import OpenAI  # type: ignore[attr-defined]
 from tavily import TavilyClient
 
+from genui_prompt import genui_system_prompt
+from genui_router import should_render_ui
 from models import HistoryMessage, SummarizeRequest
-from models_config import MODELS
+from models_config import MODELS, resolve_genui_model
 from settings import logger
 from tools import TOOLS, dispatch_tool
 
@@ -87,6 +89,7 @@ def _build_messages(
     message: str,
     history: list[HistoryMessage] | None,
     images: list[str] | None = None,
+    system: str | None = None,
 ) -> list[dict[str, Any]]:
     if images:
         user_content: Any = [{"type": "text", "text": message}]
@@ -97,7 +100,7 @@ def _build_messages(
         user_content = message
 
     return [
-        {"role": "system", "content": _system_prompt()},
+        {"role": "system", "content": system or _system_prompt()},
         *[{"role": m.role, "content": m.content} for m in (history or [])],
         {"role": "user", "content": user_content},
     ]
@@ -150,16 +153,39 @@ def stream_response(
     thinking: bool = False,
     user_id: str | None = None,
     session_id: str | None = None,
+    ui_client: OpenAI | None = None,
+    genui: str = "off",
 ) -> Iterator[str]:
     try:
-        messages = list(_build_messages(message, history, images))
+        # --- Generative UI routing -------------------------------------------
+        # Decided before anything else so the prose path below is untouched when
+        # UI is not warranted. `use_genui` False == the pre-existing behaviour.
+        use_genui = False
+        if genui != "off":
+            if web_search:
+                # The two-pass tool flow and the widget grammar don't compose
+                # cleanly; web_search wins and genui is skipped for this turn.
+                logger.info("genui skipped: web_search takes precedence")
+            else:
+                use_genui = should_render_ui(client, message, genui)
+
+        active_client = client
+        system: str | None = None
+        if use_genui:
+            active_client = ui_client or client
+            model = resolve_genui_model()
+            system = genui_system_prompt(_system_prompt())
+            logger.info("genui active (model=%s)", model)
+
+        messages = list(_build_messages(message, history, images, system))
 
         create_kwargs: dict[str, Any] = {
             "metadata": {"model": model},
             "model": model,
             "messages": messages,
             "stream": True,
-            "max_tokens": 4096 if thinking else 2048,
+            # Widget JSON is verbose; give the genui path the larger budget.
+            "max_tokens": 4096 if (thinking or use_genui) else 2048,
             "temperature": 0.3,
             "user": user_id,
             "extra_body": {"enable_thinking": True, "thinking_budget": 1024, "verbosity": "low"}
@@ -170,7 +196,7 @@ def stream_response(
             create_kwargs["tools"] = TOOLS  # type: ignore[assignment]
 
         with propagate_attributes(user_id=user_id, session_id=session_id, trace_name="chat.stream_responses"):
-            stream = client.with_options(timeout=60).chat.completions.create(**create_kwargs)  # type: ignore[call-overload]
+            stream = active_client.with_options(timeout=60).chat.completions.create(**create_kwargs)  # type: ignore[call-overload]
 
         # First pass: stream content to client and accumulate any tool calls.
         tool_calls_acc: dict[int, dict[str, Any]] = {}
