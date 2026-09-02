@@ -278,11 +278,20 @@ def _acquire_evidence(
     """Decide whether this turn needs the web, and gather the sources if so.
 
     Split out from answering for two reasons. It lets the answer be produced by a
-    model with no tool-calling support -- which is what unblocked generative UI on
-    search turns, since `gemma3` cannot call tools at all. And it keeps the answer
-    model chosen by what actually happened rather than by a flag: a plain greeting
-    with search enabled costs one short call here and is then answered by the small
-    default model, not by the heavier tool-capable one.
+    model with no tool-calling support, which is what unblocked generative UI on
+    search turns -- the genui model then was `gemma3`, which cannot call tools at
+    all. That constraint no longer binds locally, but the split still earns its
+    keep: `UI_MODEL_BASE_URL` may point at an endpoint that does not do tool calls,
+    and the answer stays free to be whichever model suits the turn. And it keeps
+    the answer model chosen by what actually happened rather than by a flag: a
+    plain greeting with search enabled costs one short call here and is then
+    answered by the small default model, not by the heavier tool-capable one.
+
+    The model here must be a *non-thinking* one. Measured against live Ollama,
+    `qwen3:8b` spends `ACQUIRE_MAX_TOKENS` reasoning and never emits the call --
+    6/8 against `qwen2.5:7b`'s 8/8, at 4-20s a turn instead of under a second.
+    Since search is on by default this pass runs on every turn, so that cost is
+    paid whether or not the web is needed.
 
     Never raises: a failure here means answering without web results, which is a
     worse answer, not a broken turn.

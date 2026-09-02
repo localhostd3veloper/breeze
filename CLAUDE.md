@@ -162,14 +162,18 @@ generative UI happen in the _same_ answer:
 
 1. **Acquire** (`chat._acquire_evidence`) -- a short, non-streaming call on the
    tool-capable model that only decides whether the web is needed and runs the tools.
-   Skipped for image turns.
+   Skipped for image turns. It must be a **non-thinking** model -- a thinking one
+   spends `ACQUIRE_MAX_TOKENS` reasoning and never emits the call.
 2. **Answer** -- one streaming call that receives the results as an **evidence block
    inside the user turn**, never as a `role: "tool"` message.
 
 That placement is the whole trick. A tool-role message ties the answer to a
-tool-calling model, which is why search used to veto generative UI -- `gemma3` cannot
-call tools at all. As plain text in the user turn, any model can answer from search
-results, prose or widgets.
+tool-calling model, which is why search used to veto generative UI -- the genui
+model then was `gemma3`, which cannot call tools at all. As plain text in the user
+turn, any model can answer from search results, prose or widgets. The current genui
+model does support tools, so the constraint no longer binds locally, but the split
+still earns its keep: a hosted `UI_MODEL_BASE_URL` need not do tool calls, and the
+answer model stays free to be whichever one suits the turn.
 
 Web search is **on by default**. It costs little on turns that need nothing: the
 acquire pass makes no tool call and `select_model` keys off whether a search

@@ -16,6 +16,20 @@
 #                 it holds a spec grammar in its head and emits strict JSON
 #
 # All of them must exist in the Ollama library (https://ollama.com/library).
+#
+# **Use the `-instruct` tag for vision/genui, never the bare `qwen3-vl:8b`.**
+# That tag resolves to the *thinking* variant, which spends the whole
+# `GENUI_MAX_TOKENS` budget in `reasoning_content` and returns an empty
+# `content`: measured against live Ollama, 4 of 5 genui turns rendered nothing
+# at all. `-instruct` scored 6/6 schema-valid specs on the same suite. The same
+# trap is why `web_search` is `qwen2.5:7b` rather than the newer `qwen3:8b` --
+# a thinking model burns `ACQUIRE_MAX_TOKENS` before it emits the tool call
+# (6/8 vs 8/8 on the acquire suite, and 4-20s instead of under a second).
+#
+# Sizing note: everything here is chosen to fit the 8GB card *whole*. A model
+# that spills to CPU is not merely slower, it is slower on the two paths a user
+# watches most -- `gemma3:12b` held these two roles and ran at 25% CPU offload,
+# 17-23s per genui turn against `qwen3-vl:8b-instruct`'s 1.4-8.2s.
 
 import json
 from pathlib import Path

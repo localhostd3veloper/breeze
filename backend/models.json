@@ -1,8 +1,8 @@
 {
   "default": "phi4-mini:3.8b",
-  "vision": "gemma3:12b",
+  "vision": "qwen3-vl:8b-instruct",
   "thinking": "qwen3:8b",
   "web_search": "qwen2.5:7b",
   "summarize": "phi4-mini:3.8b",
-  "genui": "gemma3:12b"
+  "genui": "qwen3-vl:8b-instruct"
 }

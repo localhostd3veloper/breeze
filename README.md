@@ -120,17 +120,25 @@ to report healthy before it starts.
 
 ## Ollama models
 
-`setup.sh` pulls whatever is missing. To do it separately, run `./install.sh`:
+`setup.sh` pulls whatever is missing. To do it separately, run `./install.sh`.
 
-```bash
-ollama pull phi4-mini:3.8b   # default + summarize
-ollama pull gemma3:12b       # vision + generative UI
-ollama pull qwen3:8b         # thinking
-ollama pull qwen2.5:7b       # web search
-```
+| Model                  | Roles                 | Size   |
+| ---------------------- | --------------------- | ------ |
+| `phi4-mini:3.8b`       | default, summarize    | 2.5 GB |
+| `qwen3-vl:8b-instruct` | vision, generative UI | 6.1 GB |
+| `qwen3:8b`             | thinking              | 5.2 GB |
+| `qwen2.5:7b`           | web search            | 4.7 GB |
 
-> Model selection lives in [backend/models_config.py](backend/models_config.py).
-> If you change it, update `REQUIRED_MODELS` in `setup.sh` to match.
+> Model selection lives in [backend/models.json](backend/models.json) — one file,
+> read by `setup.sh`, `install.sh` and `models_config.py` alike, so nothing can
+> drift. Edit it and re-run `./install.sh`.
+
+Two things worth knowing before you swap one out. The defaults are sized to fit an
+**8 GB card whole** — a model that spills to CPU costs more than it looks like it
+should, and it spills on the paths a user watches. And for the vision and
+generative-UI roles, prefer a model's **`-instruct` tag over its thinking tag**: a
+thinking model spends the capped completion budget on reasoning and can return an
+empty answer. See the notes in [backend/models_config.py](backend/models_config.py).
 
 ---
 
