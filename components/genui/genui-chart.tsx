@@ -1,7 +1,7 @@
 'use client';
 
 import { useReducedMotion } from 'motion/react';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import {
   Area,
   AreaChart,
@@ -11,8 +11,6 @@ import {
   Cell,
   LabelList,
   Legend,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -70,6 +68,27 @@ function useChartModel(spec: GenUiChart) {
   }, [spec]);
 }
 
+/**
+ * One vertical gradient per series, top-weighted.
+ *
+ * Every filled mark in the app fades the same direction -- dense where the value
+ * is, thinning toward the baseline -- so a bar and an area read as the same
+ * instrument rather than as two chart libraries. Stops carry the series token,
+ * never a hex, so the fills follow the theme toggle with no re-render.
+ */
+function SeriesGradients({ ids, from, to }: { ids: string[]; from: number; to: number }) {
+  return (
+    <defs>
+      {ids.map((id, i) => (
+        <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={seriesColor(i)} stopOpacity={from} />
+          <stop offset="100%" stopColor={seriesColor(i)} stopOpacity={to} />
+        </linearGradient>
+      ))}
+    </defs>
+  );
+}
+
 function ChartTooltip({ unit }: { unit?: string }) {
   return (
     <Tooltip
@@ -114,6 +133,13 @@ export function GenUiChartWidget({ spec }: { spec: GenUiChart }) {
   // threaded into it explicitly or the entrance sweep runs regardless.
   const animate = !useReducedMotion();
 
+  // Several charts can share one message, so gradient ids have to be unique per
+  // instance or the last <defs> on the page wins for all of them. useId's colons
+  // are legal in a fragment reference but not in a CSS selector -- stripped so
+  // the id stays queryable in tests and devtools.
+  const uid = useId().replace(/:/g, '');
+  const gradientIds = keys.map((_, i) => `${uid}-fill-${i}`);
+
   // A legend is mandatory at >= 2 series so identity is never colour-alone.
   // A single series is named by the title instead, so it gets no legend box.
   const showLegend = !single;
@@ -154,9 +180,31 @@ export function GenUiChartWidget({ spec }: { spec: GenUiChart }) {
     }
 
     if (spec.variant === 'line' || spec.variant === 'area') {
-      const Chart = spec.variant === 'line' ? LineChart : AreaChart;
+      /**
+       * Both variants draw as an area. A bare polyline reads as a spreadsheet
+       * export; the gradient gives the trace a body that says "this is a
+       * magnitude over time" without adding a second encoding.
+       *
+       * The fill is what separates them. Unstacked series overlap, and the
+       * overlaps compound: six fills at the opacity that suits one turn the
+       * lower half of the plot to mud. So the fill thins as the series count
+       * grows -- generous for the one- and two-series charts that are most of
+       * what gets asked for, nearly absent by six, where the strokes carry it.
+       * A stack does not overlap at all, so its bands can be near-solid, which
+       * is the only way the middle of a stack stays legible.
+       */
+      const stacked = spec.variant === 'area' && spec.stacked;
+      const [from, to] = stacked
+        ? ([0.85, 0.55] as const)
+        : keys.length === 1
+          ? ([0.3, 0.02] as const)
+          : keys.length === 2
+            ? ([0.18, 0.01] as const)
+            : ([0.09, 0.01] as const);
+
       return (
-        <Chart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+        <AreaChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+          <SeriesGradients ids={gradientIds} from={from} to={to} />
           <CartesianGrid stroke={GRID_STROKE} vertical={false} />
           <XAxis
             dataKey="name"
@@ -167,48 +215,58 @@ export function GenUiChartWidget({ spec }: { spec: GenUiChart }) {
           <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} width={44} />
           <ChartTooltip unit={spec.unit} />
           {showLegend && <ChartLegend />}
-          {keys.map((key, i) =>
-            spec.variant === 'line' ? (
-              <Line
-                key={key}
-                type="monotone"
-                dataKey={key}
-                name={names[i] || spec.title || 'Value'}
-                stroke={seriesColor(i)}
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--card)' }}
-                isAnimationActive={animate}
-                animationDuration={420}
-              />
-            ) : (
-              <Area
-                key={key}
-                type="monotone"
-                dataKey={key}
-                name={names[i] || spec.title || 'Value'}
-                stroke={seriesColor(i)}
-                strokeWidth={2}
-                fill={seriesColor(i)}
-                fillOpacity={0.14}
-                stackId={spec.stacked ? 'a' : undefined}
-                isAnimationActive={animate}
-                animationDuration={420}
-              />
-            )
-          )}
-        </Chart>
+          {keys.map((key, i) => (
+            <Area
+              key={key}
+              type="monotone"
+              dataKey={key}
+              name={names[i] || spec.title || 'Value'}
+              stroke={seriesColor(i)}
+              strokeWidth={2}
+              fill={`url(#${gradientIds[i]})`}
+              // The gradient already carries the alpha; a second multiplier here
+              // would wash the stops out and make `stacked` unreadable.
+              fillOpacity={1}
+              stackId={stacked ? 'a' : undefined}
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--card)' }}
+              isAnimationActive={animate}
+              animationDuration={420}
+            />
+          ))}
+        </AreaChart>
       );
     }
 
+    /**
+     * A single series gets a gauge track instead of grid lines: each column is
+     * drawn to full height in the muted surface, and the bar fills it. The
+     * proportion becomes readable at the mark itself rather than by tracing a
+     * line back to the axis, which is the instrument-panel reading the rest of
+     * the app uses. Grid rules would then be a second, competing reference, so
+     * they are dropped -- the axis still carries the numbers.
+     *
+     * Multiple series cannot share a track (whose column would it be?), so they
+     * keep the conventional grid.
+     */
+    const track = single && !spec.stacked;
+
     return (
-      <BarChart data={rows} margin={{ top: 14, right: 12, bottom: 0, left: 0 }} barGap={2}>
-        <CartesianGrid stroke={GRID_STROKE} vertical={false} />
+      <BarChart
+        data={rows}
+        margin={{ top: 14, right: 12, bottom: 0, left: 0 }}
+        barGap={2}
+        barCategoryGap={track ? '18%' : '12%'}
+      >
+        <SeriesGradients ids={gradientIds} from={1} to={0.72} />
+        {!track && <CartesianGrid stroke={GRID_STROKE} vertical={false} />}
         <XAxis
           dataKey="name"
           tick={AXIS_TICK}
           tickLine={false}
-          axisLine={{ stroke: GRID_STROKE }}
+          // The bars sit on this line, so it is the one rule allowed to read as
+          // structure rather than as background.
+          axisLine={{ stroke: 'var(--border)' }}
         />
         <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} width={44} />
         <ChartTooltip unit={spec.unit} />
@@ -218,13 +276,17 @@ export function GenUiChartWidget({ spec }: { spec: GenUiChart }) {
             key={key}
             dataKey={key}
             name={names[i] || spec.title || 'Value'}
-            fill={seriesColor(i)}
+            fill={`url(#${gradientIds[i]})`}
             stackId={spec.stacked ? 'a' : undefined}
             // Round the data-end only; the base stays anchored to the baseline.
             radius={spec.stacked ? 0 : [4, 4, 0, 0]}
             // 2px surface gap between stacked segments.
             stroke={spec.stacked ? 'var(--card)' : undefined}
             strokeWidth={spec.stacked ? 2 : 0}
+            // Without a cap, three categories become three slabs the width of a
+            // paragraph, which is the clearest tell of a default chart.
+            maxBarSize={56}
+            background={track ? { fill: 'var(--muted)', fillOpacity: 0.5, radius: 4 } : undefined}
             isAnimationActive={animate}
             animationDuration={420}
           >
