@@ -11,7 +11,7 @@ import { GenUiTableWidget } from './genui-table';
 /**
  * Dispatch for everything that can appear inside a tab panel.
  *
- * The map is exhaustive over `GenUiLeaf['type']` and switched on a literal —
+ * The map is exhaustive over `GenUiLeaf['type']` and switched on a literal  --
  * there is no lookup from a model-supplied string into a component registry, so
  * a spec cannot name a component that the compiler has not already approved.
  */

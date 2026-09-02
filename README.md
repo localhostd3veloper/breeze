@@ -17,7 +17,7 @@ A full-stack AI chat app with streaming responses, web search, vision, and exten
 ### Recommended (reference hardware)
 
 - **CPU**: Intel i9-13800HX or equivalent
-- **GPU**: NVIDIA RTX 4060 with 8 GB VRAM (CUDA) — required for running local models at reasonable speed
+- **GPU**: NVIDIA RTX 4060 with 8 GB VRAM (CUDA) -- required for running local models at reasonable speed
 - **RAM**: 32 GB system RAM
 - **Storage**: ~20 GB free for Ollama model weights
 
@@ -47,7 +47,7 @@ ollama pull qwen3:8b           # thinking / extended reasoning
 ollama pull qwen2.5:7b         # web search
 ```
 
-> Model selection is configured in `backend/models_config.py` — edit that file to swap models.
+> Model selection is configured in `backend/models_config.py` -- edit that file to swap models.
 
 ---
 
@@ -108,7 +108,7 @@ LANGFUSE_PUBLIC_KEY=
 LANGFUSE_BASE_URL=
 ```
 
-> Langfuse and Tavily are optional — the app works without them, but web search and LLM tracing will be unavailable.
+> Langfuse and Tavily are optional -- the app works without them, but web search and LLM tracing will be unavailable.
 
 ---
 
@@ -157,7 +157,7 @@ breeze/
 
 - **Streaming chat** via NDJSON with real-time token rendering
 - **Web search** powered by Tavily (automatic when user asks about recent events)
-- **Vision** — attach images to messages (uses llava)
-- **Extended thinking** — step-by-step reasoning mode (uses qwen3)
+- **Vision** -- attach images to messages (uses llava)
+- **Extended thinking** -- step-by-step reasoning mode (uses qwen3)
 - **Conversation history** with auto-generated titles (via OpenAI-compatible API)
 - **Dark/light mode**, markdown + code highlighting, math, Mermaid diagrams

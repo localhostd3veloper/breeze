@@ -2,7 +2,7 @@
  * Categorical series colours.
  *
  * The values live in `app/globals.css` as `--series-1..6` and are validated in
- * both modes by `scripts/validate_palette.js` — see `tasks/chart-design.md`.
+ * both modes by `scripts/validate_palette.js` -- see `tasks/chart-design.md`.
  * Referencing them as CSS vars (rather than hex) is what makes a chart follow
  * the theme toggle without re-rendering.
  */
@@ -23,7 +23,7 @@ export function seriesColor(index: number): string {
 
 /**
  * Slots 2 (brass) and 6 (moss) sit below 3:1 against the light paper surface.
- * The relief rule makes direct labels mandatory when either is on screen — it
+ * The relief rule makes direct labels mandatory when either is on screen -- it
  * is not a preference and not dismissable.
  */
 const LOW_CONTRAST_LIGHT_SLOTS = new Set([1, 5]);

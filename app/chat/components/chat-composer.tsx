@@ -37,7 +37,7 @@ const readNoGreeting = () => null;
  * animation possible at all: one element changing position, not two swapping.
  *
  * `docked` is read off the transcript, and the transcript gains the user's message
- * synchronously on submit (see PENDING_CONVERSATION_ID) — so the slide starts on
+ * synchronously on submit (see PENDING_CONVERSATION_ID) -- so the slide starts on
  * keypress rather than when the server answers.
  */
 export function ChatComposer() {
@@ -56,7 +56,7 @@ export function ChatComposer() {
 
   // Null on the server, a greeting after hydration. A random pick during render
   // makes the server and client markup differ, and `suppressHydrationWarning`
-  // only covers an element's own text — once the greeting is split into per-word
+  // only covers an element's own text -- once the greeting is split into per-word
   // spans that mismatch becomes a hard hydration error and React rebuilds the
   // tree. `useSyncExternalStore` is the sanctioned way to hand back a
   // client-only value without a setState-in-effect.
@@ -126,7 +126,7 @@ export function ChatComposer() {
               The AI is currently catching some Zs... 😴
             </AlertTitle>
             <AlertDescription>
-              The backend is down — probably maintenance or the dev is asleep. You can browse past
+              The backend is down -- probably maintenance or the dev is asleep. You can browse past
               conversations, but new messages won&apos;t go through. Check back later!
             </AlertDescription>
           </Alert>

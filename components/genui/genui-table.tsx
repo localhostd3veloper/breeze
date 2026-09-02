@@ -20,7 +20,7 @@ function compare(a: Cell | undefined, b: Cell | undefined): number {
 }
 
 function renderCell(v: Cell | undefined) {
-  if (v === undefined || v === null) return <span className="text-muted-foreground">—</span>;
+  if (v === undefined || v === null) return <span className="text-muted-foreground">--</span>;
   if (typeof v === 'boolean') return v ? 'Yes' : 'No';
   return String(v);
 }

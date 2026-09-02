@@ -12,7 +12,7 @@ import { GenUiTabsWidget } from './genui-tabs';
  * Placeholder shown while the fence is still arriving.
  *
  * Sized close to a real widget so the message does not jump when the spec
- * resolves — the point of the skeleton is that the widget *settles*, not that
+ * resolves -- the point of the skeleton is that the widget *settles*, not that
  * it appears.
  */
 function GenUiSkeleton() {

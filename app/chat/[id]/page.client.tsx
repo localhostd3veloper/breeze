@@ -23,7 +23,7 @@ export function ChatConversationClient({ conversationId }: ChatConversationClien
 
   /**
    * Arriving here from a brand-new chat, the cache is already warm and the
-   * message is already on screen — fading it in from zero would flash. Only a
+   * message is already on screen -- fading it in from zero would flash. Only a
    * cold load (a direct link, the sidebar) earns the intro.
    */
   const [hasWarmCache] = useState(() => (messages?.length ?? 0) > 0);

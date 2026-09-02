@@ -48,6 +48,7 @@ The app will be available at `http://localhost:3000`.
 ### Reporting Bugs
 
 Open an issue with:
+
 - A clear title and description
 - Steps to reproduce
 - Expected vs. actual behavior
@@ -56,6 +57,7 @@ Open an issue with:
 ### Suggesting Features
 
 Open an issue tagged `enhancement` with:
+
 - The problem you're solving
 - Your proposed solution
 - Any alternatives you considered
@@ -77,7 +79,7 @@ Open an issue tagged `enhancement` with:
 ## Code Style
 
 - **Frontend**: TypeScript, Tailwind CSS 4, shadcn/ui components. Follow existing file and component patterns.
-- **Backend**: Python, FastAPI. Keep endpoints thin — logic lives in `chat.py` / `summarize.py`.
+- **Backend**: Python, FastAPI. Keep endpoints thin -- logic lives in `chat.py` / `summarize.py`.
 - Avoid unnecessary abstractions. Keep changes minimal and focused.
 - No new dependencies without discussion in an issue first.
 

@@ -80,7 +80,7 @@ function ConversationItem({
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { margin: '-20px 0px', once: false });
   // The menu renders into a portal outside the panel, so reaching it means the
-  // pointer leaves the panel — which would slide the panel out from under its
+  // pointer leaves the panel -- which would slide the panel out from under its
   // own menu. Hold it while the menu is up.
   const [menuOpen, setMenuOpen] = useState(false);
   usePeekLock(menuOpen);

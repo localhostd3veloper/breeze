@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 /**
  * The one animation on the site.
  *
- * A slow flow field standing in for moving air — the thing the product is named
+ * A slow flow field standing in for moving air -- the thing the product is named
  * after, and the medium the boundary rule cuts through. Deliberately near the
  * threshold of visibility: it should register as atmosphere, not as an effect.
  *
@@ -30,8 +30,8 @@ export function WindField({ className }: { className?: string }) {
     /**
      * Each particle carries its own short trail. This is the reason the canvas is
      * cleared every frame instead of being faded down: a multiplicative fade
-     * (`destination-out` at low alpha) can never reach zero in an 8-bit buffer —
-     * once a pixel decays to 1/255, `1 * 0.965` rounds back to 1 — so faint
+     * (`destination-out` at low alpha) can never reach zero in an 8-bit buffer --
+     * once a pixel decays to 1/255, `1 * 0.965` rounds back to 1 -- so faint
      * streaks survive forever and silt up the background over a long session.
      */
     const TAIL = 52;

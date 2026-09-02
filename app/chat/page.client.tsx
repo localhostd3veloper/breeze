@@ -13,7 +13,7 @@ import type { ChatMessageDTO } from '@/lib/types/conversation';
 import { ChatMessages } from './components/chat-messages';
 
 /**
- * A new chat renders the pending transcript — the optimistic user message that
+ * A new chat renders the pending transcript -- the optimistic user message that
  * `useChatStream` writes before the conversation exists. The composer and the
  * health alert live in the layout, so this page is only the transcript.
  */
@@ -24,7 +24,7 @@ export function ChatClient() {
   /**
    * The pending key outlives the submit that filled it, so it has to be cleared
    * somewhere. Clearing it on the way out rather than on the way in means a fresh
-   * /chat never has a stale transcript to hide — so there is nothing to gate the
+   * /chat never has a stale transcript to hide -- so there is nothing to gate the
    * first render on, and no flash to suppress. By unmount the handover to the real
    * conversation key has already happened, so nothing on screen depends on it.
    */

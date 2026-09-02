@@ -19,7 +19,7 @@ ${F}breeze-ui
          {"name":"/search","value":233},{"name":"/health","value":12}]}
 ${F}
 
-Note the direct value labels — required relief for the low-contrast slots.`,
+Note the direct value labels -- required relief for the low-contrast slots.`,
   },
   {
     label: 'chart · bar, multi-series, stacked',

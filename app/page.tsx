@@ -63,6 +63,12 @@ export default async function Page() {
 
           <div className="flex items-center gap-1.5">
             <Link
+              href="/docs"
+              className="text-muted-foreground hover:text-foreground eyebrow mr-2 hidden transition-colors sm:inline"
+            >
+              Docs
+            </Link>
+            <Link
               href="https://github.com/localhostd3veloper/breeze"
               target="_blank"
               rel="noopener noreferrer"
@@ -108,7 +114,7 @@ export default async function Page() {
           <h1 className="type-display mt-6 max-w-4xl text-[clamp(2.6rem,8.5vw,6rem)]">
             {headline.map(({ word, accent }, i) => (
               <Fragment key={`${i}-${word}`}>
-                {/* A real space between the masks, not inside one — whitespace at
+                {/* A real space between the masks, not inside one -- whitespace at
                     the end of an inline-block does not create a break opportunity,
                     which would stop the headline wrapping. */}
                 {i > 0 && ' '}
@@ -186,14 +192,19 @@ export default async function Page() {
             <Wordmark className="text-foreground text-base" />
             <span className="eyebrow">MIT licensed</span>
           </div>
-          <Link
-            href="https://github.com/localhostd3veloper"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-foreground eyebrow transition-colors"
-          >
-            @localhostd3veloper
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link href="/docs" className="hover:text-foreground eyebrow transition-colors">
+              Docs
+            </Link>
+            <Link
+              href="https://github.com/localhostd3veloper"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground eyebrow transition-colors"
+            >
+              @localhostd3veloper
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

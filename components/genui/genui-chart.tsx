@@ -28,7 +28,7 @@ import { GenUiFrame } from './genui-frame';
 
 /**
  * Recharts renders SVG text with its own defaults, so every label is pinned to a
- * text token here. Series colour never touches text — it lives on the mark and
+ * text token here. Series colour never touches text -- it lives on the mark and
  * on the legend swatch only.
  */
 const AXIS_TICK = {
@@ -122,7 +122,7 @@ export function GenUiChartWidget({ spec }: { spec: GenUiChart }) {
    * Relief rule: slots 2 (brass) and 6 (moss) fall below 3:1 on the light
    * surface, so a faint mark must be backed by a readable number. Bars carry
    * value labels while the category count stays low enough not to collide.
-   * This is not decoration — see tasks/chart-design.md.
+   * This is not decoration -- see tasks/chart-design.md.
    */
   const directLabelBars = single && rows.length <= 8;
 

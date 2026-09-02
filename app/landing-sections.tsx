@@ -23,7 +23,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 /* ------------------------------------------------------------------ */
-/* Motion: one reveal, used everywhere. Fires once — a section that     */
+/* Motion: one reveal, used everywhere. Fires once -- a section that     */
 /* re-animates every time you scroll past it is noise, not motion.      */
 /* ------------------------------------------------------------------ */
 
@@ -97,7 +97,7 @@ export function BoundarySection() {
         <SectionHead
           eyebrow="The boundary"
           title="Here is exactly what leaves."
-          lede="Most private-AI pages ask you to take their word for it. This is the whole map — every part of Breeze, drawn on the honest side of the line."
+          lede="Most private-AI pages ask you to take their word for it. This is the whole map -- every part of Breeze, drawn on the honest side of the line."
         />
 
         <motion.div variants={rise} className="mt-16">
@@ -170,7 +170,7 @@ export function BoundarySection() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Capabilities — a hairline index, not a wall of rounded cards        */
+/* Capabilities -- a hairline index, not a wall of rounded cards        */
 /* ------------------------------------------------------------------ */
 
 const capabilities: { icon: LucideIcon; title: string; description: string }[] = [
@@ -275,7 +275,7 @@ export function CapabilitiesSection() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Setup — the one place numbering earns itself, because order matters */
+/* Setup -- the one place numbering earns itself, because order matters */
 /* ------------------------------------------------------------------ */
 
 const steps = [
@@ -397,7 +397,7 @@ export function CTASection({ isLoggedIn }: { isLoggedIn: boolean }) {
             Run it on your own hardware.
           </h2>
           <p className="text-muted-foreground mt-5 max-w-lg leading-relaxed">
-            Clone it, point it at your model, and the whole thing is yours — transcripts, accounts,
+            Clone it, point it at your model, and the whole thing is yours -- transcripts, accounts,
             and the machine doing the thinking.
           </p>
 

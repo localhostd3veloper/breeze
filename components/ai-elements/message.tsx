@@ -279,7 +279,7 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown> & {
    * arrival, so leaving it on for a settled message would re-blur the whole
    * transcript every time a conversation is opened.
    *
-   * Drives Streamdown's `isAnimating` as well as `animated` — the plugin is not
+   * Drives Streamdown's `isAnimating` as well as `animated` -- the plugin is not
    * mounted unless both are set, and `isAnimating` is also what marks the
    * trailing block incomplete, which is what keeps a half-written
    * ```breeze-ui fence in its skeleton instead of flashing an error.
@@ -288,7 +288,7 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown> & {
 };
 
 /**
- * Timing for that reveal. Word-level rather than character-level — one span per
+ * Timing for that reveal. Word-level rather than character-level -- one span per
  * word instead of per letter, and a word is the unit the eye resolves anyway.
  * Declared at module scope because Streamdown memoises on the identity of
  * `animated`, so a fresh object each render would re-render every block on

@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
+@import 'fumadocs-ui/css/shadcn.css';
+@import 'fumadocs-ui/css/preset.css';
 
 @source '../node_modules/streamdown/dist/*.js';
 
@@ -55,7 +57,7 @@
   --color-hairline: var(--hairline);
   --color-readout: var(--readout);
 
-  /* Categorical chart series — see tasks/chart-design.md */
+  /* Categorical chart series -- see tasks/chart-design.md */
   --color-series-1: var(--series-1);
   --color-series-2: var(--series-2);
   --color-series-3: var(--series-3);
@@ -65,7 +67,7 @@
 }
 
 :root {
-  /* Station palette — paper / ink / verdigris / brass / haze.
+  /* Station palette -- paper / ink / verdigris / brass / haze.
      Neutrals carry only a trace of the verdigris hue (C ≤ 0.006): enough to keep
      the greys from reading as cold blue-grey, not enough to tint the surface. */
   --background: oklch(0.968 0.002 172); /* paper */
@@ -94,17 +96,17 @@
   --readout: oklch(0.5 0.012 184);
 
   /* Wind-field stroke. On paper the streaks must be DARKER than the surface to
-     register at all, so this is a mid-dark verdigris — not a tint of the accent. */
+     register at all, so this is a mid-dark verdigris -- not a tint of the accent. */
   --wind-stroke: oklch(0.56 0.06 184 / 0.5);
 
-  /* Sequential ramp — magnitude / ordered data only. NOT for categorical series. */
+  /* Sequential ramp -- magnitude / ordered data only. NOT for categorical series. */
   --chart-1: oklch(0.82 0.09 172);
   --chart-2: oklch(0.73 0.095 175);
   --chart-3: oklch(0.64 0.092 178);
   --chart-4: oklch(0.53 0.078 182);
   --chart-5: oklch(0.585 0.093 72); /* brass terminates the ramp */
 
-  /* Categorical series — fixed order, never cycled. Validated light-mode set:
+  /* Categorical series -- fixed order, never cycled. Validated light-mode set:
      worst adjacent CVD ΔE 14.1, normal-vision ΔE 22.9, all inside L 0.43–0.77.
      Slots 2 (brass) and 6 (moss) fall below 3:1 on paper, so charts using them
      must carry direct labels. Re-run scripts/validate_palette.js on any change. */
@@ -165,7 +167,7 @@
   --chart-4: oklch(0.59 0.078 182);
   --chart-5: oklch(0.76 0.1 74);
 
-  /* Same six hues, re-stepped for the night surface — NOT a lightness flip.
+  /* Same six hues, re-stepped for the night surface -- NOT a lightness flip.
      The dark band (L 0.48–0.67) is narrower than light; a naive inversion puts
      brass and moss outside it. Validated on night #111515: worst adjacent CVD
      ΔE 13.2, normal-vision ΔE 20.3, all six ≥ 3:1. */
@@ -210,7 +212,7 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Station — instrument typography and rules                           */
+/* Station -- instrument typography and rules                           */
 /* Kept in @layer components so any Tailwind utility still wins over   */
 /* these, which avoids the padding/margin cancel-out trap.             */
 /* ------------------------------------------------------------------ */
@@ -247,7 +249,7 @@
     line-height: 0.94;
   }
 
-  /* The wordmark. Same face, pushed wider and spaced out — a nameplate. */
+  /* The wordmark. Same face, pushed wider and spaced out -- a nameplate. */
   .type-wordmark {
     font-family: var(--font-display), var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
     font-variation-settings: 'wdth' 120;
@@ -293,7 +295,7 @@
     display: inline-block;
     overflow: hidden;
     /* .type-display sets line-height to 0.94, which is shorter than the font's
-       cap-to-descender extent — without this padding the mask crops the tops of
+       cap-to-descender extent -- without this padding the mask crops the tops of
        caps and the tails of descenders. The margins take it back out of layout. */
     padding-top: 0.2em;
     margin-top: -0.2em;

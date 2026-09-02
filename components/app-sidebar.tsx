@@ -31,7 +31,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 /**
  * The panel's own header. `p-2` and nothing taller, so the mark lands on the
- * exact rect the floating latch occupies — see `peekPanelClasses`. The pin
+ * exact rect the floating latch occupies -- see `peekPanelClasses`. The pin
  * control on the right is the same button in both states, relabelled: while the
  * panel is only peeked it keeps it out for good, and once pinned it stows it.
  */
@@ -41,7 +41,7 @@ function SidebarPanelHeader() {
   const pinned = open || isMobile;
 
   // The panel slides out from under this button when it is used, and a portalled
-  // tooltip has no idea its trigger just left the screen — it would be stranded
+  // tooltip has no idea its trigger just left the screen -- it would be stranded
   // over the transcript. Radix closes on pointerdown, but not on ⌘B. Gating
   // Radix's own hover state on the panel being on screen is derived rather than
   // synchronised, so there is no setState-in-effect to cascade.
@@ -98,7 +98,7 @@ function SidebarPanel({ className, ...props }: ComponentProps<typeof Sidebar>) {
       // Parked at -16rem the panel is off screen but still focusable, so tabbing
       // off the latch walks through sixty invisible conversation links. `inert`
       // takes it out of the tab order and the a11y tree without touching a
-      // single animatable property, which `visibility` could not do — it
+      // single animatable property, which `visibility` could not do -- it
       // interpolates discretely and popped the panel in halfway through the slide.
       inert={panel === 'stowed'}
       {...hover}
@@ -119,7 +119,7 @@ function SidebarPanel({ className, ...props }: ComponentProps<typeof Sidebar>) {
 export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
   // ⌘B is bound inside SidebarProvider already. Binding it here as well made
   // both handlers fire on one keypress, and two functional toggles in a batch
-  // cancel out — the shortcut did nothing at all.
+  // cancel out -- the shortcut did nothing at all.
   return (
     <SidebarPeekProvider>
       <SidebarPeekRegion>

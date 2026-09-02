@@ -45,7 +45,7 @@ async function* parseNdjson(body: ReadableStream<Uint8Array>): AsyncGenerator<St
         try {
           yield JSON.parse(trimmed) as StreamEvent;
         } catch {
-          // malformed line — skip
+          // malformed line -- skip
         }
       }
     }

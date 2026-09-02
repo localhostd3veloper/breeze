@@ -3,7 +3,7 @@ import { genUiSchema, type GenUiSpec } from './schema';
 export type ParseResult =
   | { ok: true; spec: GenUiSpec }
   /**
-   * The text is a prefix of a valid spec — the fence is still arriving. The
+   * The text is a prefix of a valid spec -- the fence is still arriving. The
    * renderer shows a skeleton, never an error. Distinguishing this from a real
    * failure is what stops a widget flashing red on every token mid-stream.
    */
@@ -14,8 +14,8 @@ export type ParseResult =
  * True when `json` is a truncated prefix rather than malformed: braces or
  * brackets still open, or the text ends inside a string literal.
  *
- * Scans character by character so that punctuation *inside* strings — the `{`
- * in `"a { b"`, an escaped quote — cannot skew the depth count.
+ * Scans character by character so that punctuation *inside* strings -- the `{`
+ * in `"a { b"`, an escaped quote -- cannot skew the depth count.
  */
 function looksTruncated(json: string): boolean {
   let depth = 0;
@@ -87,7 +87,7 @@ function stripTrailingCommas(json: string): string {
  *
  * Tolerates the shapes a model actually produces: surrounding prose, a nested
  * fence marker, trailing commas. It does not tolerate anything outside the
- * schema — an unknown widget type is a failure, not a render.
+ * schema -- an unknown widget type is a failure, not a render.
  */
 export function parseGenUiSpec(raw: string): ParseResult {
   const text = raw.trim();
@@ -98,7 +98,7 @@ export function parseGenUiSpec(raw: string): ParseResult {
 
   const open = unfenced.indexOf('{');
   if (open === -1) {
-    // No object yet — either the fence just opened, or it is prose.
+    // No object yet -- either the fence just opened, or it is prose.
     return looksTruncated(unfenced) || unfenced.length < 2
       ? { ok: false, incomplete: true }
       : { ok: false, incomplete: false, error: 'No JSON object found' };

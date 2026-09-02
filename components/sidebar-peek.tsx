@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
  *
  * Three states, not two. `open` (from `useSidebar`) is the *pinned* state and it
  * moves layout: the gap element takes width and the transcript shifts over.
- * `peek` is transient — the panel floats above the content and nothing reflows,
+ * `peek` is transient -- the panel floats above the content and nothing reflows,
  * because a pointer that merely brushes the left edge must not move the text
  * someone is reading.
  *
@@ -34,7 +34,7 @@ type SidebarPeekContextValue = {
   openPeek: () => void;
   /** Retire it after the grace period. */
   stowPeek: () => void;
-  /** The pointer came back — abandon a pending stow. */
+  /** The pointer came back -- abandon a pending stow. */
   cancelStow: () => void;
   /** Retire it now: Esc, a pin, a navigation. */
   stowNow: () => void;
@@ -197,7 +197,7 @@ export function SidebarPeekRegion({ children }: { children: React.ReactNode }) {
  * Geometry for the peeked panel, applied to `Sidebar`'s fixed container.
  *
  * The 8px inset is not a taste call, it is registration. `SidebarHeader` pads
- * 8px and holds a 36px mark, so the panel's own mark lands at (16, 16) — exactly
+ * 8px and holds a 36px mark, so the panel's own mark lands at (16, 16) -- exactly
  * where `SidebarLatch` sits. The panel therefore unfolds *around* the logo
  * instead of appearing beside it, and the logo itself never moves.
  */
@@ -236,7 +236,7 @@ export function SidebarPeekRail() {
     >
       {/* One brass hairline, masked at both ends so it reads as an instrument
           mark rather than a border. Dark until approached, and it stands down
-          once the panel itself is out — the panel is the signal by then. */}
+          once the panel itself is out -- the panel is the signal by then. */}
       <span
         className={cn(
           'bg-brass absolute inset-y-0 left-0 w-px transition-opacity duration-150 motion-reduce:transition-none',
@@ -255,7 +255,7 @@ export function SidebarPeekRail() {
  * around a logo that never moves.
  *
  * One click target, one behaviour: while the panel is unpinned this pins it,
- * and once pinned it goes home — so the pixel the pointer is already aiming at
+ * and once pinned it goes home -- so the pixel the pointer is already aiming at
  * always does the obvious next thing.
  */
 export function SidebarMark({ className }: { className?: string }) {
@@ -298,7 +298,7 @@ export function SidebarMark({ className }: { className?: string }) {
 /**
  * The latch: the only thing on screen while the sidebar is stowed. Hovering it
  * brings the panel out around it. It stays mounted through the peek and the
- * panel simply covers it — unmounting it would drop the pointer through a hole
+ * panel simply covers it -- unmounting it would drop the pointer through a hole
  * in its own hover target.
  */
 export function SidebarLatch() {

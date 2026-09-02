@@ -55,6 +55,6 @@ def should_render_ui(client: OpenAI, message: str, mode: str) -> bool:
         logger.info("genui router: %r -> %s", answer, decision)
         return decision
     except Exception as e:
-        # A router failure must never break a chat turn — fall back to prose.
+        # A router failure must never break a chat turn -- fall back to prose.
         logger.warning("genui router failed, falling back to prose: %s", e)
         return False

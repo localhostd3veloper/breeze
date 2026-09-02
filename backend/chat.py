@@ -84,7 +84,7 @@ def _trim_history(
     """Keep the most recent messages that fit in `budget_chars`.
 
     Trims from the oldest end, so the turns nearest the question survive. Used
-    only on the genui path — the prose path keeps its existing behaviour.
+    only on the genui path -- the prose path keeps its existing behaviour.
     """
     if not history:
         return history
@@ -144,7 +144,7 @@ def _stream_chunks(stream) -> Iterator[str]:
     """Yield NDJSON text/reasoning events from an OpenAI streaming response.
 
     Handles both native reasoning (delta.reasoning) and tag-based <think>…</think> parsing.
-    Does NOT emit a 'done' event — callers are responsible for that.
+    Does NOT emit a 'done' event -- callers are responsible for that.
     """
     parser = _ReasoningParser()
     native_reasoning = False
@@ -366,7 +366,7 @@ def stream_response(
 
 _SUMMARIZE_PROMPT = (
     "You are a title generator. Given a conversation, output a short title (4 words or fewer) "
-    "that captures the main topic. Output only the title — no quotes, no punctuation at the end."
+    "that captures the main topic. Output only the title -- no quotes, no punctuation at the end."
 )
 
 

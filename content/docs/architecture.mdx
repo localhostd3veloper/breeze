@@ -1,0 +1,36 @@
+---
+title: Architecture
+description: How the frontend, backend and local model fit together.
+---
+
+# Architecture
+
+Breeze is a full-stack AI chat app. The data flows one way:
+
+```bash
+Browser → Next.js API routes → FastAPI backend → Ollama (+ optional hosted UI model)
+                ↓
+           MongoDB (Mongoose)
+```
+
+## Frontend
+
+The Next.js app handles authentication (NextAuth with Credentials + JWT) and
+the chat UI. Messages live **exclusively** in the TanStack Query cache under
+`['conversations', id, 'messages']`. Zustand only holds `isAuthenticated`.
+
+## Backend
+
+FastAPI is a separate service that owns the LLM calls to Ollama. Next.js API
+routes act as an authenticated passthrough, adding the `X-API-Key` header and
+the Langfuse tracing params (`X-User-Id`, `X-Session-Id`).
+
+## Streaming
+
+The backend emits **NDJSON**. Each line is a `StreamEvent`:
+
+```ts
+{ type: 'text' | 'reasoning' | 'done' | 'error', content: string }
+```
+
+`/api/chat` (Next.js) is a pure proxy to FastAPI `/completion`.

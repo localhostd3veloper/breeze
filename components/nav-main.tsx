@@ -113,7 +113,7 @@ export function NavMain() {
           {/* No tooltips here any more. They existed for the old icon rail, where
               a collapsed sidebar showed these as unlabelled icons. The sidebar is
               offcanvas now: whenever these buttons are on screen so are their
-              labels, so a tooltip could only ever repeat one — or get stranded
+              labels, so a tooltip could only ever repeat one -- or get stranded
               over the transcript when the panel slid away from under a hovered
               trigger, which is what it did on ⌘B. */}
           <SidebarMenuItem>

@@ -1,0 +1,65 @@
+---
+title: API Reference
+description: The FastAPI endpoints Breeze exposes.
+---
+
+# API Reference
+
+Breeze exposes two endpoints on the FastAPI backend. Both require the
+`X-API-Key` header to match your configured `API_KEY`.
+
+The optional `X-User-Id` and `X-Session-Id` headers are used for Langfuse
+tracing.
+
+## `POST /completion`
+
+Stream an LLM response. Returns **NDJSON**, one `StreamEvent` per line.
+
+| Property     | Type                  | Description                           |
+| ------------ | --------------------- | ------------------------------------- |
+| `message`    | `string`              | The user's prompt.                    |
+| `thinking`   | `boolean`             | Enable reasoning output. Default `false`. |
+| `history`    | `Message[]`           | Prior messages for context.           |
+| `web_search` | `boolean`             | Enable Tavily web search. Default `false`. |
+| `images`     | `string[]`            | Optional image references.            |
+| `genui`      | `'auto' \| 'on' \| 'off'` | Whether the reply may embed generative UI. Default `'auto'`. |
+
+`Message` is `{ role: 'user' | 'assistant', content: string }`.
+
+**Rate limit:** 10 requests/minute.
+
+### Stream Events
+
+Each NDJSON line is one of:
+
+| Type        | Content                            |
+| ----------- | ---------------------------------- |
+| `text`      | A chunk of the reply text.         |
+| `reasoning` | A chunk of reasoning output.       |
+| `done`      | Signals the stream is complete.    |
+| `error`     | An error message.                  |
+
+```bash
+curl -N -X POST https://your-host/completion \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello!", "thinking": false}'
+```
+
+## `POST /summarize`
+
+Generate a conversation title from its messages.
+
+| Property  | Type        | Description            |
+| --------- | ----------- | ---------------------- |
+| `history` | `Message[]` | The messages to title. |
+
+`Message` is `{ role: 'user' | 'assistant', content: string }`.
+
+**Rate limit:** 20 requests/minute.
+
+Returns:
+
+```json
+{ "title": "Talking about weather" }
+```

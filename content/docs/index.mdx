@@ -1,0 +1,67 @@
+---
+title: Breeze
+description: An AI chat app you host yourself. Prompts and replies go to a model running on your own hardware.
+---
+
+# Welcome to Breeze
+
+Breeze is an AI chat application you host yourself. Prompts and replies go to a
+model running on your **own hardware**, not to a vendor's cloud. Exactly one
+feature reaches the internet, and only when you switch it on.
+
+This documentation covers installation, architecture, the feature set, security
+posture, observability, and the API reference for building on top of Breeze.
+
+## Stack
+
+- **Frontend:** Next.js 16 (App Router) with shadcn/ui + Tailwind CSS 4
+- **Backend:** FastAPI
+- **Model:** Ollama (local LLM)
+- **Database:** MongoDB (Mongoose)
+- **Observability:** Langfuse (LLM tracing)
+- **Web search:** Tavily (optional, opt-in)
+
+## What you get
+
+- Streaming replies with a reasoning toggle.
+- Image understanding through a vision model.
+- Opt-in web search with cited sources.
+- Generative UI: the model can answer with charts, tables, and metric cards.
+- Conversation management: edit, regenerate, pin, archive, delete, export.
+- Full-text search across your conversations.
+
+## Privacy by default
+
+Your prompts and replies stay on your machine. The default model endpoint is
+`localhost`. Web search is the only feature that leaves your network, and it is
+turned off until you ask for it.
+
+## Quick Links
+
+<Cards>
+  <Card
+    title="Getting Started"
+    description="Install and run Breeze locally."
+    href="/docs/getting-started"
+  />
+  <Card
+    title="Features"
+    description="Reasoning, images, web search, and generative UI."
+    href="/docs/features"
+  />
+  <Card
+    title="Architecture"
+    description="How the frontend, backend and model fit together."
+    href="/docs/architecture"
+  />
+  <Card
+    title="Security"
+    description="Auth, API keys, rate limits, and safe generative UI."
+    href="/docs/security"
+  />
+  <Card
+    title="API Reference"
+    description="The FastAPI endpoints Breeze exposes."
+    href="/docs/api"
+  />
+</Cards>

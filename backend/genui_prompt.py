@@ -6,21 +6,21 @@ there but missing here is a field the model will never use.
 
 **Keep it short.** Ollama's default context window is 4096 tokens and its
 OpenAI-compatible endpoint silently ignores `options.num_ctx`, so an oversized
-system prompt does not merely waste budget — Ollama truncates the prompt from the
+system prompt does not merely waste budget -- Ollama truncates the prompt from the
 front, dropping this grammar (and the assistant's identity) before the model ever
 sees it. The symptom is a model that answers "I'm unable to display charts". The
 first draft of this file was ~3,400 tokens and did exactly that.
 
 Budget: this module must stay under ~1,000 tokens. `test_prompt_budget()` at the
 bottom asserts it. If a hosted model with a large window is configured via
-UI_MODEL_BASE_URL, richer instructions could be sent — but the local default is
+UI_MODEL_BASE_URL, richer instructions could be sent -- but the local default is
 what has to work out of the box.
 """
 
 GENUI_LANGUAGE = "breeze-ui"
 
 # One compact grammar, one worked example. Resist adding a second example per
-# widget type — see the context-window note above.
+# widget type -- see the context-window note above.
 GENUI_INSTRUCTIONS = """
 You can render widgets inline by emitting a fenced ```breeze-ui block containing
 exactly ONE JSON object. Emit up to 3 such blocks, each in its own fence.
@@ -51,7 +51,7 @@ Rules:
 - Strict JSON: double quotes, no trailing commas, no comments. No JSX, no HTML.
 - If prose is clearer, emit no widget at all.
 
-Example — user gives two builds' figures and asks which is faster:
+Example -- user gives two builds' figures and asks which is faster:
 
 Build B wins on both axes, and the gap is widest on cold start.
 

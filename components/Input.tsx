@@ -40,7 +40,7 @@ import type { GenUiMode } from '@/lib/genui/schema';
 /**
  * Every mode owns one Station accent, and the composer's border wears the accent
  * of whichever mode was switched on last. Turning something on is then visible on
- * the input itself, not only inside the popover you just closed — and the icon in
+ * the input itself, not only inside the popover you just closed -- and the icon in
  * the popover carries the same colour, so the mapping is learnable.
  */
 const MODE_ACCENT = {
@@ -130,7 +130,7 @@ const Composer = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
   /**
    * Attaching an image is a mode change too, so it joins the same queue. The
    * attachments live in the provider, not here, so there is no callback to hang
-   * this off — we adjust during render on the edge instead of in an effect, so
+   * this off -- we adjust during render on the edge instead of in an effect, so
    * the border never commits a frame wearing the stale accent.
    */
   const [prevHasImages, setPrevHasImages] = useState(false);
@@ -243,7 +243,7 @@ const Composer = ({ onSubmit, isChatAvailable }: ChatInputProps) => {
         <PromptInputTextarea
           disabled={!isChatAvailable}
           placeholder={
-            isChatAvailable ? 'Ask anything' : 'Breeze is offline — messages will not send'
+            isChatAvailable ? 'Ask anything' : 'Breeze is offline -- messages will not send'
           }
         />
         <PromptInputSubmit status={status} />

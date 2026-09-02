@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
  *
  * `useReducedMotion()` cannot know the user's preference during SSR, so it
  * always reports false there. Branching `initial` on it therefore makes the
- * server emit `opacity: 0` while a reduced-motion client emits `opacity: 1` —
+ * server emit `opacity: 0` while a reduced-motion client emits `opacity: 1`  --
  * a hydration mismatch on every widget, for exactly the users least served by
  * being ignored. Holding `initial` constant and collapsing the duration to zero
  * gives those users no movement and keeps both renders identical.

@@ -10,7 +10,7 @@ import { ChatHeader } from './components/chat-header';
 export default async function ChatLayout({ children }: { children: ReactNode }) {
   // SidebarProvider writes this cookie on every toggle but nothing was reading
   // it, so a stowed sidebar came back pinned open on the next load. Read here
-  // and the first paint is already the state the user left it in — no flash of
+  // and the first paint is already the state the user left it in -- no flash of
   // the wrong layout, which matters more now that stowing is the point.
   const stored = (await cookies()).get('sidebar_state')?.value;
 

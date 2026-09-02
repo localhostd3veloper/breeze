@@ -8,7 +8,7 @@ import type { GenUiTabs } from '@/lib/genui/schema';
 import { GenUiLeafWidget } from './genui-leaf';
 
 /**
- * Tabs hold leaf widgets only — never other tabs. The grammar enforces it, so
+ * Tabs hold leaf widgets only -- never other tabs. The grammar enforces it, so
  * this renderer needs no depth guard.
  *
  * Nested widgets drop their own outer frame (`bare`) so a tab panel does not

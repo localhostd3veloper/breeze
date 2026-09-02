@@ -900,7 +900,7 @@ export const PromptInputTextarea = ({
 
 export type PromptInputHeaderProps = HTMLAttributes<HTMLDivElement>;
 
-/** Sits above the controls — attachments, referenced sources, warnings. */
+/** Sits above the controls -- attachments, referenced sources, warnings. */
 export const PromptInputHeader = ({ className, ...props }: PromptInputHeaderProps) => (
   <div className={cn('flex w-full flex-wrap items-center gap-1 px-2 pt-2', className)} {...props} />
 );

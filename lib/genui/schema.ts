@@ -7,7 +7,7 @@ import { z } from 'zod';
  *
  * 1. **Flat beats expressive.** Every optional field is another field the model
  *    can get wrong. Reliability is the feature; richness is not.
- * 2. **No recursion.** `tabs` holds *leaf* widgets only — one level, never
+ * 2. **No recursion.** `tabs` holds *leaf* widgets only -- one level, never
  *    tabs-inside-tabs. That keeps the whole union inferable (recursive zod needs
  *    hand-written types and defeats `discriminatedUnion`), removes an unbounded
  *    render-depth hazard, and spares a small model a nesting decision it has no
@@ -23,9 +23,9 @@ const cellValue = z.union([z.string(), z.number(), z.boolean()]);
 
 /**
  * Two shapes, deliberately:
- *   - `data`   — one unnamed series, `[{ name, value }]`. What a model reaches
+ *   - `data`   -- one unnamed series, `[{ name, value }]`. What a model reaches
  *                for first, and the common case.
- *   - `x` + `series` — multi-series, sharing one category axis.
+ *   - `x` + `series` -- multi-series, sharing one category axis.
  *
  * Exactly one must be present. Without the refine, a chart with neither passes
  * validation and the renderer gets nothing to draw.
@@ -129,7 +129,7 @@ const comparisonSchema = z
 
 /* ----------------------------------------------------------------- tabs ---- */
 
-/** Leaves only — see the no-recursion rule above. */
+/** Leaves only -- see the no-recursion rule above. */
 const leafSchema = z.discriminatedUnion('type', [metricsSchema, cardSchema, tableSchema]);
 
 /**

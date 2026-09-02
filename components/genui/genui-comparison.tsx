@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { GenUiFrame } from './genui-frame';
 
 /**
- * Booleans get an icon *and* a screen-reader label — a bare tick relies on shape
+ * Booleans get an icon *and* a screen-reader label -- a bare tick relies on shape
  * alone, which is the same mistake as relying on colour alone.
  */
 function BoolCell({ value }: { value: boolean }) {

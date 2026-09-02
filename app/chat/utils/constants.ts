@@ -1,5 +1,5 @@
 /**
- * Empty-state greetings. Each one is an opening someone can answer — an empty
+ * Empty-state greetings. Each one is an opening someone can answer -- an empty
  * screen is an invitation to act, so none of these are mood-setting filler.
  */
 export const emptyStateMessages = [

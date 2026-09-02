@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronsUpDownIcon, CodeIcon, LifeBuoyIcon, LogOutIcon } from 'lucide-react';
+import { BookOpenIcon, ChevronsUpDownIcon, CodeIcon, LifeBuoyIcon, LogOutIcon } from 'lucide-react';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
 import { useState } from 'react';
@@ -25,7 +25,7 @@ import {
 
 export function NavUser() {
   const { isMobile } = useSidebar();
-  // Portalled outside the panel — see the note in nav-conversations.
+  // Portalled outside the panel -- see the note in nav-conversations.
   const [menuOpen, setMenuOpen] = useState(false);
   usePeekLock(menuOpen);
   const { data: session } = useSession();
@@ -87,9 +87,15 @@ export function NavUser() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {/* Only destinations that exist. This is a self-hosted instance —
+            {/* Only destinations that exist. This is a self-hosted instance --
                 there is no plan to upgrade and nothing to bill. */}
             <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/docs">
+                  <BookOpenIcon />
+                  Documentation
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
                   href="https://github.com/localhostd3veloper/breeze"

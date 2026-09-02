@@ -11,7 +11,7 @@ import { group, rise, SectionHead, viewport } from './landing-sections';
 /*                                                                     */
 /* A weather station takes numbers and renders them on a dial. That is  */
 /* exactly what this feature does, so the section shows the real spec   */
-/* beside the real widget it produces — rendered by the same component  */
+/* beside the real widget it produces -- rendered by the same component  */
 /* the chat uses, not a screenshot. The mechanism IS the argument, the  */
 /* way the boundary diagram is the argument above it.                   */
 /* ------------------------------------------------------------------ */
@@ -194,12 +194,12 @@ export function GenerativeUISection() {
         <SectionHead
           eyebrow="Generative UI"
           title="Some answers are better drawn."
-          lede="When a reply is really a trend, a table or a shortlist, Breeze writes the numbers for one and the app draws it. Every example below is a live widget, not a picture — pick one to see the spec that produced it."
+          lede="When a reply is really a trend, a table or a shortlist, Breeze writes the numbers for one and the app draws it. Every example below is a live widget, not a picture -- pick one to see the spec that produced it."
         />
 
         <motion.div variants={rise} className="mt-14">
           {/* Example switcher. User-triggered, so the section still has exactly
-              one automatic reveal — the page's shared `rise`. */}
+              one automatic reveal -- the page's shared `rise`. */}
           <div
             role="tablist"
             aria-label="Examples"

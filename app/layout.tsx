@@ -19,12 +19,12 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-// Display face. The `wdth` axis is the reason for this choice — set wide, Archivo
+// Display face. The `wdth` axis is the reason for this choice -- set wide, Archivo
 // reads like signage stencilled on an instrument panel rather than another UI sans.
 const archivo = Archivo({
   variable: '--font-archivo',
   subsets: ['latin'],
-  // No `weight` — declaring extra axes requires the full variable range,
+  // No `weight` -- declaring extra axes requires the full variable range,
   // which is what we want anyway: `wdth` is set per-class in globals.css.
   axes: ['wdth'],
 });
