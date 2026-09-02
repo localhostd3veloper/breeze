@@ -2,12 +2,6 @@ import mongoose from 'mongoose';
 
 import { env } from '../env';
 
-const MONGODB_URI = env.MONGO_URI;
-
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
-}
-
 /**
  * Global is used here to maintain a cached connection across hot reloads
  * in development. This prevents connections growing exponentially
@@ -34,8 +28,12 @@ async function dbConnect() {
       bufferCommands: false,
     };
 
+    // Read at call time, not module scope. `next build` imports this module
+    // while prerendering, where no runtime secrets exist -- resolving the URI
+    // up here would fail the production build (and the Docker image) instead
+    // of a genuinely misconfigured deploy.
     cached.promise = mongoose
-      .connect(MONGODB_URI as string, opts)
+      .connect(env.MONGO_URI, opts)
       .then((mongoose) => {
         console.log('MongoDB: Application successfully connected to the database.');
         return mongoose;

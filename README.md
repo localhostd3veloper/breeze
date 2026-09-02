@@ -36,98 +36,123 @@ A full-stack AI chat app with streaming responses, web search, vision, and exten
 
 ---
 
-## Ollama Models
+## Quick start
 
-Pull the models used by the backend before starting:
-
-```bash
-ollama pull phi4-mini:3.8b    # default + summarize
-ollama pull llava:7b           # vision
-ollama pull qwen3:8b           # thinking / extended reasoning
-ollama pull qwen2.5:7b         # web search
-```
-
-> Model selection is configured in `backend/models_config.py` -- edit that file to swap models.
-
----
-
-## Installation
-
-### 1. Clone the repo
+Ollama runs on your **host** (so it keeps your GPU with no passthrough config);
+everything else runs in Docker.
 
 ```bash
 git clone <repo-url>
 cd breeze
+./setup.sh
 ```
 
-### 2. Frontend
+That is the whole setup. `setup.sh` checks Docker, writes a `.env` with freshly
+generated secrets, verifies Ollama is reachable _from inside a container_, pulls
+any missing models, then builds and starts the stack. It is idempotent -- re-run
+it whenever you want.
+
+When it finishes it prints the app URL and the generated demo password.
+
+### One thing Ollama needs
+
+Ollama binds `127.0.0.1` by default, and containers cannot reach loopback --
+they arrive from the Docker bridge. `setup.sh` detects this and stops with
+instructions, but for reference:
 
 ```bash
-bun install
+sudo systemctl edit ollama
+#   [Service]
+#   Environment="OLLAMA_HOST=0.0.0.0"
+sudo systemctl daemon-reload && sudo systemctl restart ollama
 ```
 
-Create `.env.local` in the project root:
+On macOS / Windows: Ollama Desktop → Settings → "Expose Ollama to the network".
+
+### Day-to-day
 
 ```bash
-OLLAMA_API_URL=http://localhost:8000   # FastAPI backend URL
-OLLAMA_API_KEY=your-shared-secret      # Must match backend API_KEY
-MONGO_URI=mongodb+srv://...            # MongoDB Atlas connection string
-NEXTAUTH_SECRET=your-nextauth-secret
-NEXTAUTH_URL=http://localhost:3000
-PLATFORM_PASSWORD=demo-password        # Password for demo account
+docker compose up -d          # start
+docker compose logs -f        # follow logs
+docker compose down           # stop
+docker compose down -v        # stop and drop the database volume
+docker compose up -d --build  # rebuild after code changes
 ```
-
-### 3. Backend
-
-```bash
-cd backend
-```
-
-Install dependencies (using uv):
-
-```bash
-uv sync
-```
-
-Or with pip:
-
-```bash
-pip install -r <(uv export --no-hashes)
-# alternatively: pip install fastapi uvicorn langfuse openai ollama slowapi tavily-python python-dotenv pydantic mcp tavily-mcp
-```
-
-Create `backend/.env`:
-
-```bash
-API_KEY=your-shared-secret        # Must match frontend OLLAMA_API_KEY
-
-TAVILY_API_KEY=                   # Tavily API key (for web search)
-
-LANGFUSE_SECRET_KEY=
-LANGFUSE_PUBLIC_KEY=
-LANGFUSE_BASE_URL=
-```
-
-> Langfuse and Tavily are optional -- the app works without them, but web search and LLM tracing will be unavailable.
 
 ---
 
-## Running
+## Configuration
 
-Start all three services (each in a separate terminal):
+One file, `.env` at the repo root, created from [.env.example](.env.example).
+`docker-compose.yml` fans it out to each service under the name that service
+expects -- which is why the shared frontend/backend secret is written once as
+`BREEZE_API_KEY` rather than twice.
+
+| Variable                    | Required | Notes                                                        |
+| --------------------------- | -------- | ------------------------------------------------------------ |
+| `BREEZE_API_KEY`            | yes      | Shared secret; becomes `OLLAMA_API_KEY` and `API_KEY`        |
+| `NEXTAUTH_SECRET`           | yes      | Signs NextAuth JWTs                                          |
+| `PLATFORM_PASSWORD`         | yes      | Demo account password                                        |
+| `MONGO_URI`                 | no       | Defaults to the `mongo` service; set it to use Atlas instead |
+| `OLLAMA_BASE_URL`           | no       | Defaults to `http://host.docker.internal:11434/v1`           |
+| `NEXTAUTH_URL` / `APP_PORT` | no       | Change both together if port 3000 is taken                   |
+| `TAVILY_API_KEY`            | no       | Without it, search falls back to a keyless DuckDuckGo scrape |
+| `LANGFUSE_*`                | no       | Blank disables tracing                                       |
+| `UI_MODEL_*`                | no       | Blank keeps generative UI on local Ollama                    |
+
+`setup.sh` generates the three required values for you.
+
+---
+
+## Services
+
+| Service    | Image                           | Port            | Notes                                   |
+| ---------- | ------------------------------- | --------------- | --------------------------------------- |
+| `frontend` | built from `Dockerfile`         | 3000            | Next standalone build, runs on Node     |
+| `backend`  | built from `backend/Dockerfile` | 127.0.0.1:8000  | FastAPI via uv; `/health` healthcheck   |
+| `mongo`    | `mongo:8`                       | 127.0.0.1:27017 | Named volume `mongo-data`               |
+| Ollama     | --                              | host :11434     | **Not** containerised; runs on the host |
+
+Backend and Mongo are published on loopback only. The frontend waits for both
+to report healthy before it starts.
+
+---
+
+## Ollama models
+
+`setup.sh` pulls whatever is missing. To do it separately, run `./install.sh`:
 
 ```bash
-# 1. Ollama (if not already running)
-ollama serve
-
-# 2. FastAPI backend (from /backend)
-cd backend && uvicorn app:app --reload --port 8000
-
-# 3. Next.js frontend (from project root)
-bun run dev
+ollama pull phi4-mini:3.8b   # default + summarize
+ollama pull gemma3:12b       # vision + generative UI
+ollama pull qwen3:8b         # thinking
+ollama pull qwen2.5:7b       # web search
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+> Model selection lives in [backend/models_config.py](backend/models_config.py).
+> If you change it, update `REQUIRED_MODELS` in `setup.sh` to match.
+
+---
+
+## Running without Docker
+
+For frontend work with hot reload, three terminals:
+
+```bash
+# 1. Ollama
+ollama serve
+
+# 2. Backend  (needs `uv sync` once, and a backend/.env with API_KEY=...)
+cd backend && uv run uvicorn app:app --reload --port 8000
+
+# 3. Frontend  (needs `bun install` once, and a .env.local -- note the
+#    different variable names: OLLAMA_API_URL, OLLAMA_API_KEY, MONGO_URI,
+#    NEXTAUTH_SECRET, NEXTAUTH_URL, PLATFORM_PASSWORD)
+bun install && bun run dev
+```
+
+The container path uses the single root `.env`; this path uses the original
+two-file `.env.local` + `backend/.env` layout.
 
 ---
 

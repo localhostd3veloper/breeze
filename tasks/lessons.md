@@ -173,3 +173,23 @@ what actually matters: `curl -sf -o /dev/null localhost:3000` or `ss -ltn 'sport
 self-match is visible rather than silent. More generally, when a check exists to
 gate a _skip_, prefer the check that fails safe -- being wrong here cost the only
 verification that could see the change.
+
+## A model artifact in the history is self-sustaining -- fix the loop, not just the seed
+
+**What happened (2026-09-03):** The user reported "I am Breeze." appended to most
+long answers. I found `"If asked, say you are Breeze."` in the system prompt,
+diagnosed it as a small model dropping the condition and keeping the action, and
+rewrote the prompt. Then I actually tested it against live Ollama: the old prompt
+did **not** reproduce the leak in 11 generations across every path. The real
+mechanism was different -- once the phrase appears in one assistant turn it is in
+the history, and the model copies its own previous ending. With a poisoned history
+`qwen2.5:7b` leaked 3/3, **and the rewritten prompt changed nothing** (3/3 too).
+In-context imitation beats a system instruction on a 7B model. Stripping the
+artifact out of history on the way into the prompt took it to 0/6.
+
+**Rule:** When a model emits something it should not, check whether that thing is
+already in the context being fed back. Anything the model wrote once becomes a
+few-shot example for every later turn, so the fix belongs where the context is
+built, not only in the instructions. And a plausible root cause found by reading
+is a _hypothesis_: reproduce it before claiming a fix, especially when a real
+model server is reachable -- `curl localhost:11434/api/tags` costs nothing.

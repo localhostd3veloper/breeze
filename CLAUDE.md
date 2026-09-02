@@ -104,6 +104,23 @@ grammar and its Breeze identity, and answers "I'm unable to display charts". Con
 Raising `OLLAMA_CONTEXT_LENGTH` on the Ollama server relaxes all three, but the defaults
 must work unconfigured.
 
+### Sign-off artifacts in history
+
+`chat._strip_signoff` removes a trailing "I am Breeze." style line from **assistant
+messages on their way back into a prompt** -- never from what is streamed to the
+user or stored.
+
+This exists because the artifact is _self-sustaining_. Small models imitate the
+conversation they are shown far more strongly than they follow a system
+instruction: measured against live Ollama, a history containing one such sign-off
+reproduced it in 3/3 long answers on `qwen2.5:7b` under both the old and a
+rewritten system prompt. Fixing the prompt does nothing for a conversation that
+already contains one; stripping it from history took the same test from 5/6 to 0/6.
+
+`_system_prompt` is written with the same failure in mind: identity is _stated_,
+never requested. An earlier version said "If asked, say you are Breeze" -- any rule
+phrased as "say X" is a rule a small model will eventually say unprompted.
+
 ### Composer modes
 
 The mode switches live in `store/chat.ts`, not in `Composer`: sending the first
@@ -199,6 +216,38 @@ capped off the wire, 8s timeout, no cookies or auth headers. HTML is reduced to 
 by a stdlib parser that drops `script`/`style`, comments, and `display:none` /
 `aria-hidden` elements -- the standard hiding places for injected instructions.
 Its docstring records the one residual risk (DNS rebinding) rather than hiding it.
+
+## Packaging
+
+`./setup.sh` then `docker compose up -d` is the supported way to run the whole
+thing. Three services -- `frontend`, `backend`, `mongo` -- and **Ollama stays on
+the host**, because containerising it would mean nvidia-container-toolkit on
+every machine and re-downloading ~25 GB of weights into a volume.
+
+**One `.env` at the repo root** is the whole configuration surface. The
+frontend and backend still expect _different_ names for the same values
+(`OLLAMA_API_KEY` vs `API_KEY`), so `docker-compose.yml` does the translation in
+its `environment:` blocks rather than asking a new clone to keep two files in
+sync. Adding a variable means adding it in three places: `.env.example`, the
+right service's `environment:` block, and the README table.
+
+Two details that are load-bearing:
+
+- **`lib/env.ts` validates lazily.** It used to `envSchema.parse(process.env)`
+  at module scope, which `next build` executes while prerendering -- and the
+  Docker build deliberately passes no secrets. The `Proxy` defers the parse to
+  first property access, so a missing variable still throws the same zod error,
+  just at request time instead of image-build time. Don't put an eager
+  `process.env` read at module scope in anything a page imports.
+- **Ollama must bind `0.0.0.0`.** Its default is `127.0.0.1`, which containers
+  cannot reach -- they arrive via the bridge, not loopback. `setup.sh` proves
+  reachability by probing from a throwaway container rather than trusting a
+  `curl localhost`, because the localhost check passes in exactly the broken
+  case. `host.docker.internal` is mapped via `extra_hosts: host-gateway`, which
+  is what makes the compose file work on Linux as well as macOS/Windows.
+
+`REQUIRED_MODELS` in `setup.sh` mirrors `backend/models_config.py`; change one
+and change the other.
 
 ## Environment Variables
 

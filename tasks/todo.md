@@ -928,3 +928,72 @@ Every page that described the old flow was wrong, not merely thin:
 I told the user a dev server was live and skipped `bun run build` on that basis.
 `pgrep -f "next dev"` had matched **its own command line** -- port 3000 was
 refused the whole time. Lesson added to `lessons.md`.
+
+---
+
+# Fix: "I am Breeze." appended to long answers (2026-09-03)
+
+## What it actually was
+
+My first diagnosis was wrong, and testing caught it.
+
+Reading the prompt, `"If asked, say you are Breeze."` looked like the cause: a
+conditional whose _action_ is to emit the phrase, which small models execute
+unconditionally. Plausible -- but against live Ollama the old prompt produced **0
+leaks in 11 generations** across prose, genui, thinking and search paths.
+
+The real mechanism is **self-reinforcement through history**. Once the phrase
+appears in one assistant turn it is sent back as context on every later turn, and
+the model imitates its own previous ending. That is why it affects "almost all
+large messages": it only has to happen once, then it sustains itself.
+
+Measured with a history containing the artifact:
+
+|                      | qwen2.5:7b     | phi4-mini:3.8b |
+| -------------------- | -------------- | -------------- |
+| Old prompt           | 3/3 leaked     | 1/3            |
+| **Rewritten prompt** | **3/3 leaked** | **1/3**        |
+| History stripped     | **0/3**        | **0/3**        |
+
+**The prompt rewrite alone fixes nothing.** In-context imitation beats a system
+instruction on these models.
+
+## The fix
+
+`chat._strip_signoff`, applied in `_build_messages` to assistant history only --
+never to what is streamed to the user or stored. A user who asks "who are you"
+still gets an answer; it just stops becoming a template. Guarded so a message that
+_is_ only a self-identification is left alone, and so the bare word "breeze" in
+prose is untouched (8 unit cases).
+
+Kept the prompt rewrite as hardening, described honestly: it removes a risky
+"say X" construction and adds a HOW TO END rule, but it is **not** the fix and was
+never shown to be the seed.
+
+Also made `evidence.test_budget_fits_context_window` measure the real system prompt
+instead of a hardcoded 180 tokens, so editing the prompt cannot silently overflow
+the window. Now ~3520/4096 with 576 spare.
+
+## Verified
+
+- 5/6 → **0/6** on live Ollama across both answer models.
+- A real genui + search turn with poisoned history: searches, renders a valid
+  chart with correct data, cites `[1]`, no artifact.
+- Full regression suite still green: budget guards, 32-combination invariants,
+  routing matrix, genui+search e2e with injection probes, multi-tool ordering.
+
+## Existing conversations
+
+No migration needed -- the strip happens on the way into the prompt, so old
+poisoned transcripts stop influencing new answers immediately. The phrase remains
+in the stored history of past messages; cleaning the DB is a separate job if the
+visible scrollback matters.
+
+## Unrelated issue found
+
+`backend/settings.py` uses pydantic-settings defaults, which **forbid extra env
+vars**. Running the backend with the repo-root `.env` (the one the new Docker work
+added: `MONGO_URI`, `NEXTAUTH_SECRET`, `BREEZE_API_KEY`, …) crashes at import with
+`extra_forbidden`. If docker-compose passes a shared env file to the backend
+container, it will not boot. Fix is `extra="ignore"` in `SettingsConfigDict`.
+Not changed -- outside what was asked.

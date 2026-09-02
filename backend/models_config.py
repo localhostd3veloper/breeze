@@ -1,21 +1,48 @@
-# Model configuration for Breeze
-# Hardware: i9-13800HX, RTX 4060 CUDA 8GB VRAM, 32GB RAM
+# Model configuration for Breeze.
+# Hardware the defaults were tuned on: i9-13800HX, RTX 4060 CUDA 8GB VRAM, 32GB RAM.
 #
-# Edit this file to swap models at any time.
-# All models below should be available via Ollama (https://ollama.com/library).
+# The model names themselves live in `models.json`, not here, because `setup.sh`
+# has to pull exactly the same set before the app can start -- two hand-kept
+# lists drift, and the failure only shows up as a 404 from Ollama mid-chat.
+# Edit `models.json` to swap models; everything below is derived from it.
+#
+# Roles:
+#   default    -- ordinary chat turns, and the fallback for anything unclaimed
+#   vision     -- image attachments
+#   thinking   -- extended reasoning turns
+#   web_search -- turns where the acquire pass actually retrieved evidence
+#   summarize  -- conversation-title generation
+#   genui      -- generative UI; needs the most capable model available, since
+#                 it holds a spec grammar in its head and emits strict JSON
+#
+# All of them must exist in the Ollama library (https://ollama.com/library).
+
+import json
+from pathlib import Path
 
 from settings import settings
 
-MODELS: dict[str, str] = {
-    "default": "phi4-mini:3.8b",
-    "vision": "gemma3:12b",
-    "thinking": "qwen3:8b",
-    "web_search": "qwen2.5:7b",
-    "summarize": "phi4-mini:3.8b",
-    # Generative UI needs the most capable model available: it has to hold a
-    # spec grammar in its head and emit strictly valid JSON.
-    "genui": "gemma3:12b",
-}
+_MODELS_FILE = Path(__file__).parent / "models.json"
+
+REQUIRED_ROLES = frozenset(
+    {"default", "vision", "thinking", "web_search", "summarize", "genui"}
+)
+
+MODELS: dict[str, str] = json.loads(_MODELS_FILE.read_text())
+
+# Fail at import rather than at the first chat turn that needs the missing role.
+_missing = REQUIRED_ROLES - MODELS.keys()
+if _missing:
+    raise ValueError(f"{_MODELS_FILE} is missing required role(s): {sorted(_missing)}")
+
+
+def required_models() -> list[str]:
+    """Every distinct model that must be pulled, in first-use order.
+
+    This is what `setup.sh` reads, so the set it pulls cannot drift from the set
+    the app resolves.
+    """
+    return list(dict.fromkeys(MODELS.values()))
 
 
 def resolve_genui_model() -> str:

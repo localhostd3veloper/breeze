@@ -90,14 +90,18 @@ import { ReactNode } from 'react';
 
 import Providers from '@/components/providers';
 import ServiceWorkerRegistration from '@/components/service-worker-registration';
-import dbConnect from '@/lib/db/mongodb';
 
-export default async function RootLayout({
+// No `dbConnect()` here. The layout renders nothing from Mongo, but awaiting a
+// connection in the *root* layout made every statically prerendered page --
+// /_not-found and all nine docs pages -- depend on the database being
+// reachable at build time, which fails the production build in Docker. Every
+// route that actually needs the DB calls dbConnect() itself, and the
+// connection is pooled and cached, so nothing is lost by dropping it.
+export default function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
-  await dbConnect();
   return (
     <html lang="en" suppressHydrationWarning>
       <body

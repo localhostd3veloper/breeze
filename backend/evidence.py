@@ -149,7 +149,7 @@ def attach(message: str, block: str) -> str:
 _CHARS_PER_TOKEN = 3.5
 
 
-def test_budget_fits_context_window() -> None:
+def test_budget_fits_context_window() -> int:
     """Assert the generative-UI turn still fits Ollama's 4096-token default.
 
     Run with `python -c "import evidence as e; e.test_budget_fits_context_window()"`.
@@ -159,10 +159,15 @@ def test_budget_fits_context_window() -> None:
     grammar and the assistant's identity, and the model then answers that it cannot
     display charts.
     """
+    # Imported inside the function: chat.py imports this module at load time, so a
+    # module-level import here would be a cycle. Measuring the real prompt rather
+    # than hardcoding a number means editing the system prompt cannot silently
+    # push a generative-UI turn over the window.
+    from chat import _system_prompt
     from genui_prompt import prompt_token_estimate
 
     grammar = prompt_token_estimate()
-    base_prompt = 180  # chat._system_prompt, generously
+    base_prompt = round(len(_system_prompt()) / _CHARS_PER_TOKEN)
     evidence = round(GENUI_EVIDENCE_BUDGET_CHARS / _CHARS_PER_TOKEN)
     history = round(1200 / _CHARS_PER_TOKEN)  # GENUI_HISTORY_WITH_EVIDENCE_CHARS
     user_message = 120
@@ -170,8 +175,11 @@ def test_budget_fits_context_window() -> None:
 
     total = grammar + base_prompt + evidence + history + user_message + completion
     assert total <= 4096, (
-        f"generative-UI turn with web evidence needs ~{total} tokens, over Ollama's "
-        "4096-token default window. Ollama truncates from the front, so the widget "
-        "grammar is what gets dropped. Lower GENUI_EVIDENCE_BUDGET_CHARS or "
-        "chat.GENUI_MAX_TOKENS."
+        f"generative-UI turn with web evidence needs ~{total} tokens (grammar "
+        f"{grammar}, system prompt {base_prompt}, evidence {evidence}, history "
+        f"{history}, completion {completion}), over Ollama's 4096-token default "
+        "window. Ollama truncates from the front, so the widget grammar is what "
+        "gets dropped. Shorten chat._system_prompt, or lower "
+        "GENUI_EVIDENCE_BUDGET_CHARS or chat.GENUI_MAX_TOKENS."
     )
+    return total
