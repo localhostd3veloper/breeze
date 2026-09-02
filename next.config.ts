@@ -2,7 +2,14 @@ import { withContentCollections } from '@content-collections/next';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async rewrites() {
+    return [
+      {
+        source: '/docs/:path*.md',
+        destination: '/llms.mdx/docs/:path*',
+      },
+    ];
+  },
 };
 
 export default withContentCollections(nextConfig);
