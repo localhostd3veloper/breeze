@@ -355,3 +355,22 @@
     outline-offset: 2px;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Fumadocs glass sidebar: undo Radix's `display: table` wrapper        */
+/*                                                                     */
+/* `ScrollViewport` carries `flex flex-col` and the glass sidebar items */
+/* are `inline-flex` with no width, so they rely on that column to      */
+/* stack. Radix ScrollArea (1.2.18, the version fumadocs asks for)      */
+/* injects its own child `<div style="min-width:100%;display:table">`   */
+/* between the two, which makes the items inline-level -- they flow     */
+/* into wrapped rows instead ("Features  Web Search" on one line).      */
+/* Neither library ships an override, so restore the column here.       */
+/* Scoped to the docs layout: the chat UI's scroll areas want the       */
+/* table wrapper's shrink-to-fit behaviour.                             */
+/* ------------------------------------------------------------------ */
+#fd-glass-layout [data-radix-scroll-area-viewport] > div {
+  display: flex !important;
+  flex-direction: column;
+  gap: 0.25rem;
+}
