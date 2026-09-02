@@ -1,65 +1,131 @@
 ---
 title: API Reference
-description: The FastAPI endpoints Breeze exposes.
+description: The FastAPI endpoints Breeze exposes and how to call them.
 ---
 
 # API Reference
 
-Breeze exposes two endpoints on the FastAPI backend. Both require the
+Breeze exposes a small FastAPI backend. The protected endpoints require the
 `X-API-Key` header to match your configured `API_KEY`.
 
-The optional `X-User-Id` and `X-Session-Id` headers are used for Langfuse
-tracing.
+The optional `X-User-Id` and `X-Session-Id` headers are forwarded to Langfuse
+for trace attribution. See the [Langfuse guide](/docs/langfuse).
+
+## Endpoints at a glance
+
+| Method | Path          | Auth      | Rate limit | Purpose                 |
+| ------ | ------------- | --------- | ---------- | ------------------------ |
+| `GET`  | `/`           | none      | none       | Service status.         |
+| `GET`  | `/health`     | none      | none       | Liveness check.         |
+| `POST` | `/completion` | `X-API-Key` | 10/minute  | Stream an LLM reply.    |
+| `POST` | `/summarize`  | `X-API-Key` | 20/minute  | Create a conversation title. |
+
+### Headers
+
+| Header          | Required | Description                                   |
+| --------------- | -------- | --------------------------------------------- |
+| `X-API-Key`     | Protected endpoints | The shared service secret (`API_KEY`). |
+| `X-User-Id`     | optional | Langfuse user attribution.                    |
+| `X-Session-Id`  | optional | Langfuse session attribution.                 |
+| `Content-Type`  | `POST`   | `application/json`.                           |
+
+`Message` throughout is `{ role: 'user' | 'assistant', content: string }`.
+
+## `GET /`
+
+Service status.
+
+```json
+{ "status": "ok", "message": "Breeze Chat API is running" }
+```
+
+## `GET /health`
+
+Liveness check.
+
+```json
+{ "status": "ok" }
+```
 
 ## `POST /completion`
 
-Stream an LLM response. Returns **NDJSON**, one `StreamEvent` per line.
+Stream an LLM response as **NDJSON** (`application/x-ndjson`), one
+`StreamEvent` per line.
 
-| Property     | Type                  | Description                           |
-| ------------ | --------------------- | ------------------------------------- |
-| `message`    | `string`              | The user's prompt.                    |
+### Request body
+
+```json
+{
+  "message": "Hello!",
+  "thinking": false,
+  "history": [ { "role": "user", "content": "Hi" } ],
+  "web_search": false,
+  "images": [],
+  "genui": "auto"
+}
+```
+
+| Property     | Type                  | Description                              |
+| ------------ | --------------------- | ---------------------------------------- |
+| `message`    | `string`              | The user's prompt. Required.             |
 | `thinking`   | `boolean`             | Enable reasoning output. Default `false`. |
-| `history`    | `Message[]`           | Prior messages for context.           |
+| `history`    | `Message[]`           | Prior messages for context. Default `[]`. |
 | `web_search` | `boolean`             | Enable Tavily web search. Default `false`. |
-| `images`     | `string[]`            | Optional image references.            |
+| `images`     | `string[]`            | Optional image references or base64 data (without the `data:...;base64,` prefix). |
 | `genui`      | `'auto' \| 'on' \| 'off'` | Whether the reply may embed generative UI. Default `'auto'`. |
 
-`Message` is `{ role: 'user' | 'assistant', content: string }`.
-
-**Rate limit:** 10 requests/minute.
-
-### Stream Events
+### Stream events
 
 Each NDJSON line is one of:
 
-| Type        | Content                            |
-| ----------- | ---------------------------------- |
-| `text`      | A chunk of the reply text.         |
-| `reasoning` | A chunk of reasoning output.       |
-| `done`      | Signals the stream is complete.    |
-| `error`     | An error message.                  |
+| Type        | Content                      |
+| ----------- | ---------------------------- |
+| `text`      | A chunk of the reply text.   |
+| `reasoning` | A chunk of reasoning output. |
+| `done`      | Signals the stream is complete. |
+| `error`     | An error message.            |
+
+### Example
 
 ```bash
-curl -N -X POST https://your-host/completion \
+curl -N -X POST http://localhost:8000/completion \
   -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"message": "Hello!", "thinking": false}'
 ```
 
+### Model selection
+
+The backend picks a model based on the request; priority is
+**images > thinking > web search > default**. See the
+[Architecture guide](/docs/architecture) for the mapping.
+
 ## `POST /summarize`
 
 Generate a conversation title from its messages.
 
+### Request body
+
+```json
+{ "history": [ { "role": "user", "content": "Hi" } ] }
+```
+
 | Property  | Type        | Description            |
 | --------- | ----------- | ---------------------- |
-| `history` | `Message[]` | The messages to title. |
+| `history` | `Message[]` | The messages to title. Required. |
 
-`Message` is `{ role: 'user' | 'assistant', content: string }`.
-
-**Rate limit:** 20 requests/minute.
-
-Returns:
+### Response
 
 ```json
 { "title": "Talking about weather" }
 ```
+
+The title is a short phrase, four words or fewer.
+
+## Using it through Next.js
+
+In a normal install you never call FastAPI directly. The Next.js routes
+`/api/chat`, `/api/conversations/:id/summarize`, and `/api/health` proxy the
+backend, adding the `X-API-Key` header and forwarding `X-User-Id` and
+`X-Session-Id` for you. `/api/chat` streams the NDJSON body straight through,
+and on an upstream error it emits a single `error` event.

@@ -1,0 +1,19 @@
+{
+  "title": "Breeze",
+  "description": "Breeze documentation",
+  "pages": [
+    "index",
+    "getting-started",
+    "architecture",
+    "---Guides---",
+    "features",
+    "web-search",
+    "generative-ui",
+    "---Observability---",
+    "langfuse",
+    "---Security---",
+    "security",
+    "---Reference---",
+    "api"
+  ]
+}

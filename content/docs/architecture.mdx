@@ -5,7 +5,8 @@ description: How the frontend, backend and local model fit together.
 
 # Architecture
 
-Breeze is a full-stack AI chat app. The data flows one way:
+Breeze is a full-stack AI chat app with three layers: a Next.js frontend, a
+FastAPI backend, and a local model served by Ollama. Data flows one way:
 
 ```bash
 Browser → Next.js API routes → FastAPI backend → Ollama (+ optional hosted UI model)
@@ -13,17 +14,56 @@ Browser → Next.js API routes → FastAPI backend → Ollama (+ optional hosted
            MongoDB (Mongoose)
 ```
 
+## High-level split
+
+| Layer      | Role                                                               |
+| ---------- | ------------------------------------------------------------------ |
+| Next.js    | Auth, chat UI, CRUD for conversations and messages, passthrough proxy. |
+| FastAPI    | Owns all LLM calls: chat streaming, summarisation, generative UI routing, web search. |
+| Ollama     | Runs the local models.                                              |
+| MongoDB    | Persists users, conversations, and messages (via Mongoose).         |
+
 ## Frontend
 
 The Next.js app handles authentication (NextAuth with Credentials + JWT) and
-the chat UI. Messages live **exclusively** in the TanStack Query cache under
-`['conversations', id, 'messages']`. Zustand only holds `isAuthenticated`.
+the chat UI. API routes act as an authenticated passthrough to FastAPI: they
+add the `X-API-Key` header and forward the Langfuse tracing params
+(`X-User-Id`, `X-Session-Id`). CRUD for conversations and messages runs
+directly against MongoDB on the Next.js side.
+
+### Message state architecture
+
+Messages live **exclusively** in the TanStack Query cache under the key
+`['conversations', id, 'messages']`. Zustand holds only `isAuthenticated`.
+
+- `staleTime: Infinity` keeps the cache stable during active streams.
+- `isStreaming: true` on a message is a client-only in-flight marker, never
+  read from the database.
+- `useChatStream` orchestrates the whole flow: create conversation, optimistic
+  cache update, stream, then persist to the database.
 
 ## Backend
 
-FastAPI is a separate service that owns the LLM calls to Ollama. Next.js API
-routes act as an authenticated passthrough, adding the `X-API-Key` header and
-the Langfuse tracing params (`X-User-Id`, `X-Session-Id`).
+FastAPI is a separate service that owns the LLM calls to Ollama. It exposes the
+`/completion`, `/summarize`, `/health`, and `/` endpoints. Next.js never talks
+to Ollama directly.
+
+The OpenAI SDK is pointed at Ollama's OpenAI-compatible endpoint
+(`OLLAMA_BASE_URL`, default `http://localhost:11434/v1`). The model is selected
+per request based on what the turn needs.
+
+### Model selection
+
+Priority is **images > thinking > web search > default**:
+
+| Condition      | Model         |
+| -------------- | ------------- |
+| Default        | `phi4-mini:3.8b` |
+| Images present | `gemma3:12b`  |
+| Thinking mode  | `qwen3:8b`    |
+| Web search     | `qwen2.5:7b`  |
+| Summarisation  | `phi4-mini:3.8b` |
+| Generative UI  | `gemma3:12b`  |
 
 ## Streaming
 
@@ -33,4 +73,25 @@ The backend emits **NDJSON**. Each line is a `StreamEvent`:
 { type: 'text' | 'reasoning' | 'done' | 'error', content: string }
 ```
 
-`/api/chat` (Next.js) is a pure proxy to FastAPI `/completion`.
+`/api/chat` (Next.js) is a pure proxy to FastAPI `/completion`. The client
+parses the NDJSON stream with an `AsyncGenerator`, appending text and reasoning
+as they arrive, then persists the finished assistant message after the `done`
+event.
+
+## Generative UI
+
+An assistant reply can embed widgets by emitting a fenced ` ```breeze-ui `
+block whose body is a single JSON object. `lib/genui/schema.ts` is the
+authoritative, compile-time grammar. The fence rides inside the normal text
+content, so it needs no new StreamEvent, no API change, and no database field:
+it persists and re-renders on reload for free.
+
+The model emits data, never JSX. Specs are validated with zod against a closed
+whitelist. See the [Generative UI](/docs/generative-ui) guide.
+
+## Observability
+
+Every LLM call can be traced with Langfuse. The OpenAI client is wrapped by
+Langfuse's auto-instrumentation, and `X-User-Id` / `X-Session-Id` headers
+attribute each trace to a user and session. See the
+[Langfuse](/docs/langfuse) guide.

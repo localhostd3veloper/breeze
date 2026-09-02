@@ -1,0 +1,54 @@
+---
+title: Web Search
+description: How live web search works and when Breeze uses it.
+---
+
+# Web Search
+
+Breeze can search the live web with **Tavily** and its sources come back
+cited. This is the one feature that reaches the internet, and it stays off
+until you switch it on.
+
+## Triggering it
+
+Turn on the **Web search** toggle in the chat settings popover. The composer
+sends the `web_search: true` flag with your message.
+
+When it is active, Breeze uses a web-search model (`qwen2.5:7b`) so the search
+context fits the model's strengths. Note that priority is **images >
+thinking > web search > default**: if you also enable thinking or attach an
+image, those take precedence over the web-search model.
+
+## How a search turn works
+
+A web-search turn runs as a **two-pass** flow:
+
+1. **First pass.** Breeze streams the model's reply to you while it collects
+   any tool calls. A single tool, `web_search`, asks the model to produce a
+   query.
+
+2. **Tool execution.** Tool calls run **in parallel**, each hitting Tavily via
+   `TavilyClient.search()`. Results are returned as `tool` role messages.
+
+3. **Second pass.** The model gets the search results and streams a final
+   answer, plus a `done` event. The tool results already in the trace let it
+   cite source URLs inline.
+
+## Configuration
+
+Web search needs the `TAVILY_API_KEY` in `backend/.env`. Without it, the
+`web_search` flag has no effect.
+
+```bash
+# backend/.env
+TAVILY_API_KEY=your-tavily-key
+```
+
+## What you should know
+
+- Only the search query and results leave your machine, and only when the
+  toggle is on.
+- The tool is defined in OpenAI function-calling format in `backend/tools.py`.
+  The model is told to cite URLs.
+- Generative UI is skipped on web-search turns: the two-pass tool flow and the
+  widget grammar do not compose.

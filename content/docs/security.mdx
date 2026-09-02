@@ -1,0 +1,96 @@
+---
+title: Security
+description: Auth, API keys, rate limits, and the safe generative UI model.
+---
+
+# Security
+
+Breeze treats the backend as a private service and checks every access at the
+right layer. This page documents the guarantees and the defaults you should
+harden in production.
+
+## Authentication
+
+Breeze uses **NextAuth** with the Credentials provider and JWT sessions.
+
+- Passwords are hashed with `bcryptjs` at cost factor 12. Signups require a
+  name, a valid email, and a password of at least 8 characters.
+- Emails are normalized to lowercase at signup and on lookup.
+- Session tokens are **stateless JWTs** signed with `NEXTAUTH_SECRET`; nothing
+  is stored in a session database.
+- Every protected API route calls `getServerSession(authOptions)` and returns
+  `401` when there is no session.
+
+### Ownership checks
+
+Conversations are scoped to the signed-in user. Every CRUD route enforces
+ownership:
+
+- A request for another user's conversation returns `403`.
+- A request for a missing conversation returns `404`.
+
+Zod validates `PATCH` bodies with a strict schema that rejects unknown fields,
+and message deletion validates the `fromId` as a Mongo `ObjectId`.
+
+## Service-to-service auth
+
+The FastAPI backend is not exposed to the browser. Requests go through Next.js
+API routes, which add the `X-API-Key` header. The backend compares it against
+`API_KEY` using a constant-time comparison and returns `401` on mismatch.
+
+Only `/completion` and `/summarize` are protected; `/` and `/health` are open
+by design.
+
+## Rate limiting
+
+The backend rate-limits per client IP with `slowapi`:
+
+| Endpoint    | Limit     |
+| ----------- | --------- |
+| `/completion` | 10/minute |
+| `/summarize`  | 20/minute |
+
+## Generative UI safety
+
+The model emits **data, never JSX**.
+
+- Widget specs are validated against a closed, compile-time whitelist
+  (`lib/genui/schema.ts`) using zod.
+- An unknown widget `type` renders as collapsed JSON; nothing is evaluated.
+- Component dispatch is an exhaustive type-safe switch, not a lookup from a
+  model-supplied string.
+- Chart colours come from a validated fixed palette, not free-form input.
+
+## Secrets
+
+Keep these out of version control. The repo's `.gitignore` excludes
+`.env` and `.env.local`.
+
+- `NEXTAUTH_SECRET` signs your JWT tokens.
+- `OLLAMA_API_KEY` / `API_KEY` is the shared service secret.
+- `TAVILY_API_KEY` is the web-search credential.
+- Langfuse keys control access to your traces.
+
+## Production hardening
+
+These defaults are reasonable for local use but worth locking down in
+production:
+
+1. **Put the backend behind your reverse proxy** so `/completion` is only
+   reachable from the Next.js process, not the public internet.
+2. **Rate limits are keyed by IP.** Behind a load balancer, forward the real
+   client IP or the limit applies to the proxy.
+3. **There are no explicit security headers** (CSP, HSTS, etc.) in
+   `next.config.ts`. Add a `headers()` block or use a platform such as Vercel
+   to set them.
+4. **The journal of traces.** If you enable Langfuse, confirm the project keys
+   and base URL point at the deployment you control. See the
+   [Langfuse](/docs/langfuse) guide.
+
+## Known trade-offs
+
+- There is no server-side session store; a stolen JWT is valid until it
+  expires. Set a sensible session lifetime with `NEXTAUTH_SECRET` and rotate it
+  if you suspect leakage.
+- The chat endpoints are authenticated with a single static header key. For a
+  many-client setup, consider per-client keys via a trusted downstream proxy.

@@ -1,0 +1,73 @@
+---
+title: Features
+description: The chat modes and conversation tools in Breeze.
+---
+
+# Features
+
+Everything here is exposed through the chat composer's settings popover or the
+conversation actions in the transcript.
+
+## Modes
+
+Each mode is toggled from the "Chat settings" popover next to the input. You
+can stack several at once, and each mode paints the composer border with its
+own accent.
+
+### Thinking
+
+Turns on deliberate reasoning before the reply. The model switches to a
+reasoning model (`qwen3:8b`) and emits a streamed `reasoning` block that is
+collapsed inside the message until you open it.
+
+### Web search
+
+Lets the model search the live web and cite its sources. This is the **only**
+feature that leaves your machine. It is off until you switch it on. See the
+[Web search](/docs/web-search) guide.
+
+### Always visualize
+
+Forces the generative UI model. When it is off, the backend decides per turn
+whether the reply deserves a widget. See the [Generative UI](/docs/generative-ui)
+guide.
+
+### Images
+
+Attach an image and Breeze switches to a vision model (`gemma3:12b`). The
+image is sent to the local model as base64, never up to a cloud. You can attach
+several images to one turn.
+
+## In the transcript
+
+### Edit a message
+
+Point at any user message to edit it. Editing truncates the conversation at
+that point and streams a fresh reply.
+
+### Regenerate
+
+Point at any assistant message to ask for a new reply. The assistant message
+and everything after it are replaced.
+
+### Copy
+
+Copy the full text of any message to your clipboard.
+
+## Conversation management
+
+From the sidebar you can:
+
+- **Search** across your conversations and messages.
+- **Pin** a conversation to the top.
+- **Archive** a conversation.
+- **Delete** a conversation.
+
+From the chat header you can **download** the transcript as a plain JSON list
+of turns.
+
+## Privacy reminders
+
+- Prompts, replies, and images go to your local model.
+- Web search is opt-in and the only network egress.
+- The `/completion` and `/summarize` endpoints are rate-limited per IP.
